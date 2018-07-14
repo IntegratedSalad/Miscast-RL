@@ -164,11 +164,11 @@ class CA_CaveFactory:
 						self.__ds.union(root1,root2)
 
 class Tile(object):
-	def __init__(self, block_movement, block_sight):
+	def __init__(self, block_movement, block_sight=None):
 		self.block_movement = block_movement
 		self.block_sight = block_sight
-		self.explored = False
 
+		#if block_movement:
 
 def is_blocked(x, y, _map):
 	if _map[x][y].block_movement:

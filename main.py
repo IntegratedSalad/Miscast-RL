@@ -1,6 +1,7 @@
 import pygame
 import random
 import constants
+import field_of_view
 from spritesheet import Spritesheet
 from map_utils import Tile
 from map_utils import CA_CaveFactory as CA_map
@@ -16,6 +17,7 @@ class Game(object):
 		self.map = self.set_map()
 		self.images = []
 		self.objects = []
+		self.fov_map = []
 
 	def take_raw_map(self):
 		map_list = []
@@ -38,14 +40,14 @@ class Game(object):
 
 		player_IMG = characters.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		wall_IMG = walls.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE))
-
 		floor_IMG = pygame.image.load("tiles/floor.png")
+		empty_spaceIMG = walls.image_at((0, 16 * 2, constants.TILE_SIZE, constants.TILE_SIZE))
 
-		return [player_IMG, wall_IMG, floor_IMG]
+		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG]
 
 	def set_map(self):
 
-		final_map = [[Tile(True,True) for x in range(constants.MAP_WIDTH)] for y in range(constants.MAP_HEIGHT)]
+		final_map = [[Tile(True, block_sight=True) for x in range(constants.MAP_WIDTH)] for y in range(constants.MAP_HEIGHT)]
 
 		for x in range(0, 30):
 			for y in range(0, 30):
@@ -67,6 +69,10 @@ class Game(object):
 
 		self.objects.append(player)
 
+		self.fov_map = field_of_view.set_fov(self.fov_map)
+		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map)
+		print self.fov_map
+
 	def handle_keys(self):
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -74,54 +80,75 @@ class Game(object):
 				exit(0)
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_l:
-					player.move(1, 0, self.map)
+					player.move(1, 0, self.map, self.fov_map)
+					return 'move'
 				if event.key == pygame.K_h:
-					player.move(-1, 0, self.map)
+					player.move(-1, 0, self.map, self.fov_map)
+					return 'move'
 				if event.key == pygame.K_k:
-					player.move(0, -1, self.map)
+					player.move(0, -1, self.map, self.fov_map)
+					return 'move'
 				if event.key == pygame.K_j:
-					player.move(0, 1, self.map)
+					player.move(0, 1, self.map, self.fov_map)
+					return 'move'
 				if event.key == pygame.K_y:
-					player.move(-1, -1, self.map)
+					player.move(-1, -1, self.map, self.fov_map)
+					return 'move'
 				if event.key == pygame.K_u:
-					player.move(1, -1, self.map)
+					player.move(1, -1, self.map, self.fov_map)
+					return 'move'
 				if event.key == pygame.K_n:
-					player.move(1, 1, self.map)
+					player.move(1, 1, self.map, self.fov_map)
+					return 'move'
 				if event.key == pygame.K_b:
-					player.move(-1, 1, self.map)
+					player.move(-1, 1, self.map, self.fov_map)
+					return 'move'
+				#self.fov_map = field_of_view.reset_fov(self.fov_map)
+
+		return 'idle'
 
 
 	def run(self):
 		self.state = 'playing'
+		clock = pygame.time.Clock()
 
 		while self.state == 'playing':
-
-			self.handle_keys()
+			clock.tick(60)
+			player_action = self.handle_keys()
+			
 			scr.fill(WHITE)
 			self.draw_all()
+
+			print int(clock.get_fps())
+
+			if player_action == 'move':
+				field_of_view.fov_recalculate(self.fov_map, player.x, player.y,  self.map)
 
 			pygame.display.flip()
 
 
 	def draw_all(self):
 
-		self.clear_objects()
-
 		for x in range(0, 30):
 			for y in range(0, 30):
 				_x = x * constants.TILE_SIZE
 				_y = y * constants.TILE_SIZE
-				if self.map[x][y].block_movement:
-					scr.blit(self.images[1], (_x, _y))
-				else:
-					scr.blit(self.images[2], (_x, _y))
 
+				# jesli jest w mapie fov
+
+				if self.fov_map[x][y] == 1:
+					if self.map[x][y].block_movement:
+						scr.blit(self.images[1], (_x, _y))
+					else:
+						scr.blit(self.images[2], (_x, _y))
+				else:
+					scr.blit(self.images[3], (_x, _y))
+
+		self.draw_objects()
+
+	def draw_objects(self):
 		for obj in self.objects:
 			obj.draw(scr)
-
-	def clear_objects(self):
-		for obj in self.objects:
-			obj.clear(self.images[2], scr)
 
 	def spawn_objects(self):
 
@@ -132,19 +159,23 @@ class Game(object):
 
 		while True:
 
-			# get random number
+			# get a random number
 			# check if it's not wall
 			# place
 			pass
 
 
-game = Game()
-game.init_pygame()
-game.run()
+def main():
+	game = Game()
+	game.init_pygame()
+	game.run()
+
+if __name__ == '__main__':
+	main()
 
 # Goals:
 # Moving player
 # Spawning player randomly, in way that he does not spawn in walls
 # Moving enemy
 # Spawning enemies randomly, in way that he does not spawn in walls
-# 
+# Items

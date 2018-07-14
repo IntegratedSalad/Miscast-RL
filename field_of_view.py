@@ -1,21 +1,6 @@
 #!/usr/bin/python
 # This code is public domain.
 # By init. initd5@gmail.com
- 
-import sys # For terminal output
- 
-W = 24 # Width/Height
-H = 79
- 
-RAYS = 360 # Should be 360!
- 
-STEP = 3 # The step of for cycle. More = Faster, but large steps may
-         # cause artifacts. Step 3 is great for radius 10.
- 
-RAD = 10 # FOV radius.
- 
-# Tables of precalculated values of sin(x / (180 / pi)) and cos(x / (180 / pi))
- 
 sintable = [
     0.00000, 0.01745, 0.03490, 0.05234, 0.06976, 0.08716, 0.10453,
     0.12187, 0.13917, 0.15643, 0.17365, 0.19081, 0.20791, 0.22495, 0.24192,
@@ -119,26 +104,25 @@ costable = [
     0.98481, 0.98769, 0.99027, 0.99255, 0.99452, 0.99619, 0.99756, 0.99863,
     0.99939, 0.99985, 1.00000
 ]
- 
-level = [] # Map.
-fov = []
- 
-for x in range(W + 1): 
-    fov.append([])     # Reset FOV
-    level.append([])
- 
-    for y in range(H + 1):
-        fov[x].append(False)
-        level[x].append(False) # Every tile is floor
- 
- 
-level[5][5] = 1  # Add some walls
-level[11][11] = 1
-level[10][16] = 1
-level[11][17] = 1
- 
-px = 10  # Player coordinates
-py = 10
+
+def set_fov(fov_map):
+    for x in range(30 + 1): 
+        fov_map.append([])     
+        # Reset FOV
+     
+        for y in range(30 + 1):
+            fov_map[x].append(0)
+
+    return fov_map
+
+
+def reset_fov(fov_map):
+    for x in range(30 + 1):
+        for y in range(30 + 1):
+
+            fov_map[x][y] = 0
+
+
  
 # The FOV algo itself.
  
@@ -152,36 +136,35 @@ py = 10
 # value of sin(i degrees) and to y (player's y) value of cos(i degrees),
 # RAD times, and checking for collision with wall every step.
  
-for i in range(0, RAYS + 1, STEP): 
-    ax = sintable[i] # Get precalculated value sin(x / (180 / pi))
-    ay = costable[i] # cos(x / (180 / pi))
- 
-    x = px # Player's x
-    y = py # Player's y
- 
-    for z in range(RAD): # Cast the ray
-        x += ax
-        y += ay
- 
-        if x < 0 or y < 0 or x > W or y > H: # If ray is out of range
-            break
- 
-        fov[int(round(x))][int(round(y))] = 1  # Make tile visible
- 
-        if level[int(round(x))][int(round(y))] == 1:  # Stop ray if it hit
-            break                                     # a wall.
- 
- 
-# Let's draw it in console to show how pretty is that FOV!
-for x in range(W + 1):
-    for y in range(H + 1):
-        if (x, y) == (px, py):
-            sys.stdout.write("@") # Player
-        elif fov[x][y] == 1:
-            if level[x][y] == 0: # Seen
-                sys.stdout.write(".")
-            else:
-                sys.stdout.write("#")
-        else:
-            sys.stdout.write("?") # Unseen
-    print
+
+def cast_rays(px, py, fov_map, level_map, radius=10):
+
+    RAYS = 360
+    STEP = 3
+
+    for i in range(0, RAYS + 1, STEP): 
+        ax = sintable[i] # Get precalculated value sin(x / (180 / pi))
+        ay = costable[i] # cos(x / (180 / pi))
+     
+        x = px # Player's x
+        y = py # Player's y
+     
+        for z in range(radius): # Cast the ray
+
+            if x < 0 or y < 0 or x > 30 or y > 30: # If ray is out of range
+                break
+     
+            fov_map[int(round(x))][int(round(y))] = 1  # Make tile visible
+     
+            if level_map[int(round(x))][int(round(y))].block_sight:
+                # Stop ray if it hits a wall.
+                break
+
+            x += ax
+            y += ay
+     
+
+def fov_recalculate(fov_map, x, y, map):
+    reset_fov(fov_map)
+    cast_rays(x, y, fov_map, map)
+
