@@ -119,10 +119,12 @@ def set_fov(fov_map):
 def reset_fov(fov_map):
     for x in range(30 + 1):
         for y in range(30 + 1):
-
             fov_map[x][y] = 0
 
+def is_in_fov(fov_map, obj):
 
+    if fov_map[obj.x][obj.y] == 1: return True
+    else: return False
  
 # The FOV algo itself.
  
@@ -137,7 +139,7 @@ def reset_fov(fov_map):
 # RAD times, and checking for collision with wall every step.
  
 
-def cast_rays(px, py, fov_map, level_map, radius=10):
+def cast_rays(px, py, fov_map, level_map, radius=6):
 
     RAYS = 360
     STEP = 3
@@ -164,7 +166,7 @@ def cast_rays(px, py, fov_map, level_map, radius=10):
             y += ay
      
 
-def fov_recalculate(fov_map, x, y, map):
+def fov_recalculate(fov_map, x, y, _map):
     reset_fov(fov_map)
-    cast_rays(x, y, fov_map, map)
+    cast_rays(x, y, fov_map, _map)
 

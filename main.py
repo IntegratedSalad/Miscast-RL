@@ -5,12 +5,13 @@ import field_of_view
 from spritesheet import Spritesheet
 from map_utils import Tile
 from map_utils import CA_CaveFactory as CA_map
-from objects import Object
+import objects
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 
 class Game(object):
+
 	def __init__(self, state=None):
 		self.state = state
 		self.current_raw_map = self.take_raw_map()
@@ -37,22 +38,26 @@ class Game(object):
 
 		characters = Spritesheet("tiles/Player0.png")
 		walls = Spritesheet("tiles/Tile.png")
+		enemies_pests = Spritesheet("tiles/Pest0.png")
+		misc_enemies = Spritesheet("tiles/Misc0.png")
 
 		player_IMG = characters.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		wall_IMG = walls.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE))
 		floor_IMG = pygame.image.load("tiles/floor.png")
 		empty_spaceIMG = walls.image_at((0, 16 * 2, constants.TILE_SIZE, constants.TILE_SIZE))
+		worm_IMG = enemies_pests.image_at((7 * 16, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 22 12
+		abhorrent_creature_IMG = misc_enemies.image_at((0, 5*16, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 28 27
 
-		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG]
+		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG]
 
 	def set_map(self):
 
-		final_map = [[Tile(True, block_sight=True) for x in range(constants.MAP_WIDTH)] for y in range(constants.MAP_HEIGHT)]
+		final_map = [[Tile(True, block_sight=True, is_map_structure = True) for x in range(constants.MAP_WIDTH)] for y in range(constants.MAP_HEIGHT)]
 
 		for x in range(0, 30):
 			for y in range(0, 30):
 				if self.current_raw_map[x][y] == '.':
-					final_map[x][y] = Tile(False, False)
+					final_map[x][y] = Tile(block_movement=False, block_sight=False)
 
 		return final_map
 
@@ -65,13 +70,25 @@ class Game(object):
 		pygame.display.set_caption("RL")
 
 		self.images = self.get_images()
-		player = Object(1, 6, self.images[0], 'player')
+
+		player_fighter_component = objects.Fighter(10, 2)
+
+		player = objects.Object(1, 6, self.images[0], 'player', blocks=True, fighter=player_fighter_component)
+
+		worm_AI = objects.SimpleAI()
+		worm_fighter_component = objects.Fighter(2, 1)
+		worm = objects.Object(22, 12, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component) # 2 7
+ 
+ 		abhorrent_creature_AI = objects.SimpleAI()
+ 		abhorrent_creature_fighter_component = objects.Fighter(100, 100, area_of_hearing=15)
+		abhorrent_creature = objects.Object(28, 27, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI)
 
 		self.objects.append(player)
+		self.objects.append(worm)
+		self.objects.append(abhorrent_creature)
 
 		self.fov_map = field_of_view.set_fov(self.fov_map)
 		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map)
-		print self.fov_map
 
 	def handle_keys(self):
 		for event in pygame.event.get():
@@ -80,30 +97,29 @@ class Game(object):
 				exit(0)
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_l:
-					player.move(1, 0, self.map, self.fov_map)
+					player.move(1, 0, self.map, self.fov_map, self.objects)
 					return 'move'
 				if event.key == pygame.K_h:
-					player.move(-1, 0, self.map, self.fov_map)
+					player.move(-1, 0, self.map, self.fov_map, self.objects)
 					return 'move'
 				if event.key == pygame.K_k:
-					player.move(0, -1, self.map, self.fov_map)
+					player.move(0, -1, self.map, self.fov_map, self.objects)
 					return 'move'
 				if event.key == pygame.K_j:
-					player.move(0, 1, self.map, self.fov_map)
+					player.move(0, 1, self.map, self.fov_map, self.objects)
 					return 'move'
 				if event.key == pygame.K_y:
-					player.move(-1, -1, self.map, self.fov_map)
+					player.move(-1, -1, self.map, self.fov_map, self.objects)
 					return 'move'
 				if event.key == pygame.K_u:
-					player.move(1, -1, self.map, self.fov_map)
+					player.move(1, -1, self.map, self.fov_map, self.objects)
 					return 'move'
 				if event.key == pygame.K_n:
-					player.move(1, 1, self.map, self.fov_map)
+					player.move(1, 1, self.map, self.fov_map, self.objects)
 					return 'move'
 				if event.key == pygame.K_b:
-					player.move(-1, 1, self.map, self.fov_map)
+					player.move(-1, 1, self.map, self.fov_map, self.objects)
 					return 'move'
-				#self.fov_map = field_of_view.reset_fov(self.fov_map)
 
 		return 'idle'
 
@@ -117,13 +133,19 @@ class Game(object):
 			player_action = self.handle_keys()
 			
 			scr.fill(WHITE)
-			self.draw_all()
 
-			print int(clock.get_fps())
+			#print int(clock.get_fps())
 
 			if player_action == 'move':
-				field_of_view.fov_recalculate(self.fov_map, player.x, player.y,  self.map)
-
+				print player.x, player.y
+				# ai take turn
+				for obj in self.objects:
+					if obj.ai:
+						#obj.clear(obj.x, obj.y, self.map)
+						obj.ai.take_turn(_map=self.map, fov_map=self.fov_map, objects=self.objects, player=player)
+			
+			field_of_view.fov_recalculate(self.fov_map, player.x, player.y, self.map)
+			self.draw_all()
 			pygame.display.flip()
 
 
@@ -134,10 +156,8 @@ class Game(object):
 				_x = x * constants.TILE_SIZE
 				_y = y * constants.TILE_SIZE
 
-				# jesli jest w mapie fov
-
 				if self.fov_map[x][y] == 1:
-					if self.map[x][y].block_movement:
+					if self.map[x][y].block_sight and self.map[x][y].is_map_structure:
 						scr.blit(self.images[1], (_x, _y))
 					else:
 						scr.blit(self.images[2], (_x, _y))
@@ -148,7 +168,10 @@ class Game(object):
 
 	def draw_objects(self):
 		for obj in self.objects:
-			obj.draw(scr)
+			if obj.block_sight:
+				self.map[obj.x][obj.y].block_sight = True
+			if field_of_view.is_in_fov(self.fov_map, obj):
+				obj.draw(scr)
 
 	def spawn_objects(self):
 
@@ -163,7 +186,6 @@ class Game(object):
 			# check if it's not wall
 			# place
 			pass
-
 
 def main():
 	game = Game()
