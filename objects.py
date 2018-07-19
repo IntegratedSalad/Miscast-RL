@@ -16,6 +16,7 @@ class Object(object):
 		self.ai = ai
 		self.usable = usable
 		self.block_sight = block_sight
+		self.sended_messages = []
 
 		if self.fighter:
 			self.fighter.owner = self
@@ -26,15 +27,14 @@ class Object(object):
 		if self.usable:
 			self.usable.owner = self
 
-	def move(self, dx, dy, _map, fov_map, objects):
-		if not is_blocked(self.x + dx, self.y + dy, _map, objects):
+	def move(self, dx, dy, _map, fov_map, objects, pushing=False):
+		if not is_blocked(self.x + dx, self.y + dy, _map, objects) and (self.fighter is not None ):#or pushing):
 			self.clear(self.x, self.y, _map)
 			self.x += dx
 			self.y += dy
-			# recalculate fovmap, but in the main loop
 		else:
 			for obj in objects:
-				if (self.x + dx == obj.x and self.y + dy == obj.y) and obj.fighter is not None:
+				if (self.x + dx == obj.x and self.y + dy == obj.y) and obj.fighter is not None and self.fighter is not None:
 					self.fighter.attack(obj)
 
 	def draw(self, screen):
@@ -54,16 +54,30 @@ class Object(object):
 class Fighter(object):
 
 	# every being makes noise and can attack
-	def __init__(self, hp, attack_value, special_attack_fn=None, area_of_hearing=5):
+	def __init__(self, hp, attack_stat, special_attack_fn=None, area_of_hearing=5):
 		self.hp = hp
-		self.attack_value = attack_value
+		self.attack_stat = attack_stat
 		self.area_of_hearing = area_of_hearing
 
 	def attack(self, target):
-		print "{0} attacks {1} and they seem to not do anything".format(self.owner.name, target.name)
+
+		attack_value = random.randint(0, self.attack_stat)
+
+		target.fighter.hp -= attack_value
+
+		print "{0}:{1}".format(target.fighter.hp, target.name)
+
+		if attack_value != 0:
+			mess = "{0} attacks {1} and deals {2} dmg!".format(self.owner.name, target.name, attack_value)
+		else:
+			mess = "{0} attacks {1} and misses!".format(self.owner.name, target.name)
+
+		self.owner.sended_messages.append(mess)
 
 
 class SimpleAI(object):
+
+	# simple ai does not make any noise nor listens for it
 
 	def take_turn(self, _map, fov_map, objects, player):
 
@@ -72,22 +86,24 @@ class SimpleAI(object):
 			rand_dir_x = random.randint(-1, 1)
 			rand_dir_y = random.randint(-1, 1)
 
-			if rand_dir_x or rand_dir_y != 0:
+			if rand_dir_x and rand_dir_y != 0:
 				self.owner.move(rand_dir_x, rand_dir_y, _map, fov_map, objects)
 		else:
 			# get to the player
 
 			distance = self.owner.distance_to(player)
+
+			if distance != 0:
 			
-			dx = player.x - self.owner.x
-			dy = player.y - self.owner.y
+				dx = player.x - self.owner.x
+				dy = player.y - self.owner.y
 
-			dx = int(round(dx / distance))
-			dy = int(round(dy / distance))
+				dx = int(round(dx / distance))
+				dy = int(round(dy / distance))
 
-			self.owner.move(dx, dy, _map, fov_map, objects)
+				self.owner.move(dx, dy, _map, fov_map, objects)
 
-			print "{0} hears you!".format(self.owner.name)
+				#print "{0} hears you!".format(self.owner.name)
 
 	def target_enemy():
 		# instead of always choosing player, it will have a better usability
@@ -95,4 +111,10 @@ class SimpleAI(object):
 
 
 class NoiseAI(object):
+
+	def __init__(self, hearing):
+		pass
+
+
+class Usable(object):
 	pass

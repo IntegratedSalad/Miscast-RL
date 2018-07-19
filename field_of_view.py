@@ -105,13 +105,16 @@ costable = [
     0.99939, 0.99985, 1.00000
 ]
 
-def set_fov(fov_map):
+def set_fov(fov_map, unveil=False):
     for x in range(30 + 1): 
         fov_map.append([])     
         # Reset FOV
      
         for y in range(30 + 1):
-            fov_map[x].append(0)
+            if unveil:
+                fov_map[x].append(1)
+            else:
+                fov_map[x].append(0)
 
     return fov_map
 
