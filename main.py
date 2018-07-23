@@ -178,6 +178,7 @@ class Game(object):
 					item = player.fighter.get(self.objects)
 					if item is not None:
 						item.x, item.y = self.ui.return_item_cords()
+						self.ui.organize_inventory()
 						return 'move'
 
 		return 'idle'
@@ -467,8 +468,6 @@ class UI(object):
 		# checks how many items there is, basicly it changes the item x and y so that it goes to the inventory area
 
 		length = len(player.fighter.inventory)
-		#print length
-
 
 		x = self.x_cord
 		self.x_cord += 1
@@ -480,7 +479,6 @@ class UI(object):
 
 		y = self.y_cord
 
-		print x
 
 		return (x, y)
 
