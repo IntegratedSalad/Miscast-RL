@@ -1,12 +1,13 @@
 from math import sqrt
 from map_utils import is_blocked
+import field_of_view
 import constants
 import random
 
 
 class Object(object):
 
-	def __init__(self, x, y, img, name, blocks=False, block_sight=None, fighter=None, ai=None, usable=None):
+	def __init__(self, x, y, img, name, blocks=False, block_sight=None, fighter=None, ai=None, item=None, light_source=None):
 		self.x = x
 		self.y = y
 		self.img = img
@@ -14,9 +15,10 @@ class Object(object):
 		self.blocks = blocks
 		self.fighter = fighter
 		self.ai = ai
-		self.usable = usable
+		self.item = item
 		self.block_sight = block_sight
 		self.sended_messages = []
+		self.light_source = light_source # player is a light source
 
 		if self.fighter:
 			self.fighter.owner = self
@@ -24,8 +26,8 @@ class Object(object):
 		if self.ai:
 			self.ai.owner = self
 
-		if self.usable:
-			self.usable.owner = self
+		if self.item:
+			self.item.owner = self
 
 	def move(self, dx, dy, _map, fov_map, objects, pushing=False):
 		if not is_blocked(self.x + dx, self.y + dy, _map, objects) and (self.fighter is not None ):#or pushing):
@@ -34,8 +36,12 @@ class Object(object):
 			self.y += dy
 		else:
 			for obj in objects:
-				if (self.x + dx == obj.x and self.y + dy == obj.y) and obj.fighter is not None and self.fighter is not None:
-					self.fighter.attack(obj)
+				if self.name != 'player':
+					if (self.x + dx == obj.x and self.y + dy == obj.y) and obj.fighter is not None and self.fighter is not None and obj.name == 'player':
+						self.fighter.attack(obj)
+				else:
+					if (self.x + dx == obj.x and self.y + dy == obj.y) and obj.fighter is not None and self.fighter is not None:
+						self.fighter.attack(obj)
 
 	def draw(self, screen):
 		_x = self.x * constants.TILE_SIZE
@@ -51,13 +57,27 @@ class Object(object):
 		dy = other.y - self.y
 		return sqrt(dx ** 2 + dy ** 2)
 
+	def clear_messages(self):
+		self.sended_messages = []
+
+	def send_message(self):
+		# add the possibility to change the color (it would need to be a list of message and the RGB value)
+		pass
+
+	def destroy(self):
+		self.item = None
+		self.img = None
+
+
 class Fighter(object):
 
-	# every being makes noise and can attack
-	def __init__(self, hp, attack_stat, special_attack_fn=None, area_of_hearing=5):
-		self.hp = hp
+	# every being makes noise and can attack, have inventory
+	def __init__(self, max_hp, attack_stat, special_attack_fn=None, area_of_hearing=5):
+		self.max_hp = max_hp
+		self.hp = max_hp
 		self.attack_stat = attack_stat
 		self.area_of_hearing = area_of_hearing
+		self.inventory = []
 
 	def attack(self, target):
 
@@ -65,14 +85,41 @@ class Fighter(object):
 
 		target.fighter.hp -= attack_value
 
-		print "{0}:{1}".format(target.fighter.hp, target.name)
-
 		if attack_value != 0:
-			mess = "{0} attacks {1} and deals {2} dmg!".format(self.owner.name, target.name, attack_value)
+			mess = "{0} attacks {1} and deals {2} dmg!".format(self.owner.name.capitalize(), target.name.capitalize(), attack_value)
 		else:
-			mess = "{0} attacks {1} and misses!".format(self.owner.name, target.name)
+			mess = "{0} attacks {1} and misses!".format(self.owner.name.capitalize(), target.name.capitalize())
 
 		self.owner.sended_messages.append(mess)
+
+		#print mess
+
+
+	def kill(self, fov_map, player_x, player_y, _map, images):
+		self.owner.ai = None
+		self.owner.fighter = None
+		self.owner.block_sight = False
+		self.owner.blocks = False
+		self.owner.img = images[6] # instead, use specific image for every character and corpse stats overall
+		self.owner.clear(self.owner.x, self.owner.y, _map)
+		field_of_view.fov_recalculate(fov_map, player_x, player_y, _map)
+		self.owner.sended_messages.append(self.owner.name.capitalize() + " is dead")
+
+	def get(self, objects):
+		for obj in objects:
+			if obj.item is not None:
+				if self.owner.x == obj.x and self.owner.y == obj.y:
+					self.inventory.append(obj)
+					self.owner.sended_messages.append("{0} picks up {1}".format(self.owner.name.capitalize(), obj.name))
+					objects.remove(obj)
+					return obj
+
+	def drop(self, objects, obj):
+		obj.x = self.owner.x
+		obj.y = self.owner.y
+		self.inventory.remove(obj)
+		self.owner.sended_messages.append("{0} drops {1}".format(self.owner.name.capitalize(), obj.name))
+		objects.append(obj)
 
 
 class SimpleAI(object):
@@ -103,7 +150,6 @@ class SimpleAI(object):
 
 				self.owner.move(dx, dy, _map, fov_map, objects)
 
-				#print "{0} hears you!".format(self.owner.name)
 
 	def target_enemy():
 		# instead of always choosing player, it will have a better usability
@@ -116,5 +162,17 @@ class NoiseAI(object):
 		pass
 
 
-class Usable(object):
-	pass
+class Item(object):
+	def __init__(self, value_of, use_func=None, can_break=False):
+		self.use_func = use_func
+		self.can_break = can_break
+		self.value_of = value_of
+
+	def use(self, target=None):
+
+		if self.use_func(target, self.value_of) != 'cancelled':
+			# remove from obj inventory
+			target.fighter.inventory.remove(self.owner)
+		else:
+			target.sended_messages.append("You cannot use that.")
+
