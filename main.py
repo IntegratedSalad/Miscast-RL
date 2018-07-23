@@ -122,7 +122,7 @@ class Game(object):
 		abhorrent_creature = objects.Object(28, 27, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI)
 
 
-		for n in range(50):
+		for n in range(100):
 			rand_x = random.randrange(constants.MAP_WIDTH)
 			rand_y = random.randrange(constants.MAP_HEIGHT)
 
@@ -403,6 +403,8 @@ class UI(object):
 
 		self.x_cord = constants.INVENTORY_ITEMS_START_X
 		self.y_cord = constants.INVENTORY_ITEMS_START_Y
+
+		self.treshold = 11
 		# problem jest w tym ze gdy uzyjemy itemu, ma on niezmieniona pozycje w ekwipunku!
 		# albo zrobic tak ze zamiast usuwac item z obiektow, usunac go dopiero po uzyciu, a on sam przemiesci sie do odpowiedniego miejsca w ekwipunku
 
@@ -467,18 +469,20 @@ class UI(object):
 	def return_item_cords(self):
 		# checks how many items there is, basicly it changes the item x and y so that it goes to the inventory area
 
+		# DOES'NT WORK!!!
+
 		length = len(player.fighter.inventory)
 
 		x = self.x_cord
-		self.x_cord += 1
-		if (length % 11 == 0):
 
+		if (length % 11 == 0):
+			#print 'DODODO'
+			#print length
 			x = constants.INVENTORY_ITEMS_START_X
-			self.x_cord = constants.INVENTORY_ITEMS_START_X
 			self.y_cord += 1
 
 		y = self.y_cord
-
+		x += 1
 
 		return (x, y)
 
@@ -496,7 +500,8 @@ class UI(object):
 
 			item.x = constants.INVENTORY_ITEMS_START_X + x_offset
 			item.y = constants.INVENTORY_ITEMS_START_Y + y_offset
-			x_offset += 1
+			if counter % 11 != 0:
+				x_offset += 1
 
 
 class Level(object):
@@ -513,7 +518,7 @@ if __name__ == '__main__':
 # Goals:
 # Moving player v 
 # Items - scrolls v and potions v, equipment
-# Inventory 
+# Inventory v
 # line of sight - to targeting
 
 
