@@ -145,6 +145,9 @@ class Game(object):
 		self.ui = UI(player.fighter, self.images, 'game_screen')
 
 	def handle_keys(self):
+
+		# change this to an action, for instance "up" can progress player along y axis and can scroll menus or move line of sight upwards
+
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				pygame.quit()
@@ -177,10 +180,8 @@ class Game(object):
 				if event.key == pygame.K_g:
 					item = player.fighter.get(self.objects)
 					if item is not None:
-						item.x, item.y = self.ui.return_item_cords()
-						self.ui.organize_inventory()
+						self.ui.add_item_to_UI(item)
 						return 'move'
-
 		return 'idle'
 
 
@@ -198,9 +199,9 @@ class Game(object):
 				# it creates rect that bounds item on the screen
 
 				if to_check.collidepoint(m_x, m_y):
-					#if self.ui.inv_use[item].item is not None:
 					if item.item.use_func is not None:
 						item.item.use(target=player)
+						self.ui.remove_item_from_UI(item.x, item.y)
 					return 'used_item'
 
 		if r_click == 1:
@@ -209,8 +210,8 @@ class Game(object):
 
 
 				if to_check.collidepoint(m_x, m_y):
+					self.ui.remove_item_from_UI(item.x, item.y)
 					player.fighter.drop(self.objects, item)
-
 					return 'dropped_item'
 		return 'idle'
 
@@ -253,7 +254,6 @@ class Game(object):
 				# sort inventory and pause game
 				if not listened:
 					self.listen_for_messagess(player)
-				self.ui.organize_inventory()
 				self.print_messages()
 				self.pause_menu()
 
@@ -262,7 +262,6 @@ class Game(object):
 
 			self.state = self.check_for_player_death()
 			self.draw_all()
-			self.ui.inv = player.fighter.inventory
 			pygame.display.flip()
 
 		while self.state == 'game_over':
@@ -368,7 +367,7 @@ class Game(object):
 			scr.blit(message_to_blit, (16, _y))
 			_y -= constants.FONT_SIZE
 
-	def use_item_by_mouse(self, m_x, m_y, l_click):
+	def use_item_by_mouse(self, m_x, m_y, l_click, r_click):
 
 		if l_click == 1:
 			pass
@@ -397,16 +396,16 @@ class UI(object):
 	def __init__(self, player, images, current_view):
 		self.images = images
 		self.current_view = current_view
-		#self.inv_screen = [] #[[None for x in range(constants.INVENTORY_WIDTH)] for y in range(constants.INVENTORY_HEIGHT)]
 		self.inv_start_pos_x = constants.INVENTORY_ITEMS_START_X * constants.FONT_SIZE
 		self.inv_start_pos_y = constants.INVENTORY_ITEMS_START_Y * constants.FONT_SIZE
 
 		self.x_cord = constants.INVENTORY_ITEMS_START_X
 		self.y_cord = constants.INVENTORY_ITEMS_START_Y
 
-		self.treshold = 11
-		# problem jest w tym ze gdy uzyjemy itemu, ma on niezmieniona pozycje w ekwipunku!
-		# albo zrobic tak ze zamiast usuwac item z obiektow, usunac go dopiero po uzyciu, a on sam przemiesci sie do odpowiedniego miejsca w ekwipunku
+		self.x_width = 0
+
+		self.inventory_places = [[y, x, None] for y in range(constants.INVENTORY_ITEMS_START_Y, constants.INVENTORY_HEIGHT + constants.INVENTORY_ITEMS_START_Y) 
+											  for x in range(constants.INVENTORY_ITEMS_START_X, constants.INVENTORY_WIDTH + constants.INVENTORY_ITEMS_START_X)]
 
 
 	def draw_rect(self, start_x, start_y, width, height, border_tiles, scr):
@@ -457,7 +456,7 @@ class UI(object):
 		scr.blit(hp_to_blit, (31 * constants.FONT_SIZE, 16))
 
 
-	def draw_inventory(self, scr):
+	def draw_inventory(self, scr): # change that
 		for item in player.fighter.inventory:
 
 			_x = item.x * constants.FONT_SIZE
@@ -466,43 +465,34 @@ class UI(object):
 			scr.blit(item.img, (_x, _y))
 
 
-	def return_item_cords(self):
+	def add_item_to_UI(self, item):
 		# checks how many items there is, basicly it changes the item x and y so that it goes to the inventory area
 
-		# DOES'NT WORK!!!
+		x = 1
+		y = 0
+		slot = 2
 
-		length = len(player.fighter.inventory)
+		for place in self.inventory_places:
+			if place[slot] is None:
+				item.x = place[x]
+				item.y = place[y]
+				place[slot] = item
+				print item
+				break
 
-		x = self.x_cord
+	def remove_item_from_UI(self, item_x, item_y):
 
-		if (length % 11 == 0):
-			#print 'DODODO'
-			#print length
-			x = constants.INVENTORY_ITEMS_START_X
-			self.y_cord += 1
+		# sort inventory - goes through all items and sets them again
 
-		y = self.y_cord
-		x += 1
+		x = 1
+		y = 0
+		slot = 2
 
-		return (x, y)
-
-	def organize_inventory(self):
-
-		y_offset = 0
-		x_offset = 0
-		counter = 0
-
-		for item in player.fighter.inventory:
-			counter += 1
-			if (counter % 11 == 0):
-				y_offset += 1
-				x_offset = 0
-
-			item.x = constants.INVENTORY_ITEMS_START_X + x_offset
-			item.y = constants.INVENTORY_ITEMS_START_Y + y_offset
-			if counter % 11 != 0:
-				x_offset += 1
-
+		for place in self.inventory_places:
+			if place[x] == item_x and place[y] == item_y:
+				place[slot] = None
+				print place
+				break
 
 class Level(object):
 	pass
@@ -515,11 +505,15 @@ def main():
 if __name__ == '__main__':
 	main()
 
+
 # Goals:
 # Moving player v 
-# Items - scrolls v and potions v, equipment
+# Items - scrolls v and potions v, equipment - sword, equipment slots
 # Inventory v
-# line of sight - to targeting
+# line of sight - to targeting, description menu
+# names of items after hovering over them
+# lantern and torches - use from the inventory
+# 
 
 
 # Spawning player randomly, in way that he does not spawn in walls
