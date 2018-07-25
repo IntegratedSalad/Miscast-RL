@@ -19,6 +19,7 @@ class Object(object):
 		self.block_sight = block_sight
 		self.sended_messages = []
 		self.light_source = light_source # player is a light source
+		self.description =  ""
 
 		if self.fighter:
 			self.fighter.owner = self
@@ -163,16 +164,17 @@ class NoiseAI(object):
 
 
 class Item(object):
-	def __init__(self, value_of, use_func=None, can_break=False):
+	def __init__(self, value_of, use_func=None, can_break=False, targetable=False):
 		self.use_func = use_func
 		self.can_break = can_break
 		self.value_of = value_of
+		self.targetable = targetable
 
-	def use(self, target=None):
+	def use(self, target=None, user=None):
 
 		if self.use_func(target, self.value_of) != 'cancelled':
 			# remove from obj inventory
-			target.fighter.inventory.remove(self.owner)
+			user.fighter.inventory.remove(self.owner)
 		else:
-			target.sended_messages.append("You cannot use that.")
+			user.sended_messages.append("You cannot use that.")
 

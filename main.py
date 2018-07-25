@@ -27,7 +27,6 @@ class Game(object):
 		self.messages_history = []
 		self.messages = []
 		self.ui = None
-		self.can_click = True
 
 	def take_raw_map(self):
 		map_list = []
@@ -63,7 +62,6 @@ class Game(object):
 		hp_potion_IMG = potions_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		scroll_of_death_IMG = scrolls_SPRITES.image_at((5 * constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 
-
 		ui_MESSAGE_HORIZONTAL = ui_SPRITES.image_at((constants.TILE_SIZE, constants.TILE_SIZE * 3, constants.TILE_SIZE, constants.TILE_SIZE))
 		ui_MESSAGE_TOP_LEFT = ui_SPRITES.image_at((0, constants.TILE_SIZE * 3, constants.TILE_SIZE, constants.TILE_SIZE))
 		ui_MESSAGE_BOTTOM_LEFT = ui_SPRITES.image_at((0, constants.TILE_SIZE * 5, constants.TILE_SIZE, constants.TILE_SIZE))
@@ -90,8 +88,8 @@ class Game(object):
 
 		pygame.init()
 		pygame.font.init()
-		font = pygame.font.Font("SDS_6x6.ttf", constants.FONT_SIZE)
-		subscript_font = pygame.font.Font("SDS_6x6.ttf", 8) # font will be used to tell how many of exact items are in the inventory
+		font = pygame.font.Font("Px437_IBM_VGA8.ttf", constants.FONT_SIZE)
+		subscript_font = pygame.font.Font("Px437_IBM_VGA8.ttf", 8) # font will be used to tell how many of exact items are in the inventory
 		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
 		pygame.display.set_caption("RL")
 
@@ -131,7 +129,7 @@ class Game(object):
 				hp_potion = objects.Object(player.x + 1, player.y, self.images[constants.IMAGES_POTION_HP], 'healing potion', item=hp_potion_item_component)
 				self.objects.append(hp_potion)
 
-		scroll_of_death_item_component = objects.Item(10, use_func=use_functions.instant_death)
+		scroll_of_death_item_component = objects.Item(10, use_func=use_functions.instant_death, targetable=True)
 		scroll_of_death = objects.Object(player.x + 2, player.y, self.images[constants.IMAGES_SCROLL_OF_DEATH], 'scroll of death', item=scroll_of_death_item_component)
 
 		self.objects.append(player)
@@ -182,6 +180,9 @@ class Game(object):
 					if item is not None:
 						self.ui.add_item_to_UI(item)
 						return 'move'
+				if event.key == pygame.K_SEMICOLON:
+					return 'look'
+
 		return 'idle'
 
 
@@ -191,28 +192,48 @@ class Game(object):
 		r_click = pygame.mouse.get_pressed()[2]
 		l_click = pygame.mouse.get_pressed()[0]
 
+		# make it more general
+
 		if l_click == 1:
 			# if mouse pos is in inventory
 			for item in player.fighter.inventory:
 
-				to_check = pygame.Rect(item.x * constants.FONT_SIZE, item.y * constants.FONT_SIZE, 16, 16)
+				to_check = pygame.Rect(item.x * constants.FONT_SIZE, item.y * constants.FONT_SIZE, constants.FONT_SIZE, constants.FONT_SIZE)
 				# it creates rect that bounds item on the screen
 
 				if to_check.collidepoint(m_x, m_y):
 					if item.item.use_func is not None:
-						item.item.use(target=player)
+						if not item.item.targetable:
+							item.item.use(target=player)
+						else:
+							target = self.enter_look_mode("Target what?")
+							for obj in self.objects:
+								if (obj.x, obj.y) == target:
+									item.item.use(target=obj, user=player)
 						self.ui.remove_item_from_UI(item.x, item.y)
 					return 'used_item'
 
 		if r_click == 1:
 			for item in player.fighter.inventory:
-				to_check = pygame.Rect(item.x * constants.FONT_SIZE, item.y * constants.FONT_SIZE, 16, 16)
+				to_check = pygame.Rect(item.x * constants.FONT_SIZE, item.y * constants.FONT_SIZE, constants.FONT_SIZE, constants.FONT_SIZE)
 
 
 				if to_check.collidepoint(m_x, m_y):
 					self.ui.remove_item_from_UI(item.x, item.y)
 					player.fighter.drop(self.objects, item)
 					return 'dropped_item'
+
+
+		if self.ui.inventory_rect.collidepoint(m_x, m_y):
+
+
+			for item in player.fighter.inventory:
+				to_check = pygame.Rect(item.x * constants.FONT_SIZE, item.y * constants.FONT_SIZE, constants.FONT_SIZE, constants.FONT_SIZE)
+
+				if to_check.collidepoint(m_x, m_y):
+					to_blit = font.render(item.name, True, WHITE)
+					return ('blit', to_blit)
+
 		return 'idle'
 
 
@@ -220,7 +241,7 @@ class Game(object):
 		self.state = 'playing'
 		clock = pygame.time.Clock()
 
-		player.sended_messages.append("You descend to your own basement.")
+		player.sended_messages.append("You descend into your own basement.")
 		self.listen_for_messagess(player)
 
 		while self.state == 'playing':
@@ -233,9 +254,15 @@ class Game(object):
 			
 			scr.fill(BLACK)
 
-			#print int(clock.get_fps())
+			# here will be the state, game or menu(description etc)
 
-			if player_action == 'move' or (mouse_action != 'idle' and mouse_action != 'dropped_item'):
+			print int(clock.get_fps())
+
+			if player_action == 'look':
+				self.enter_look_mode("Look at what?")
+				# process request
+
+			if player_action == 'move' or (mouse_action != 'idle' and mouse_action != 'dropped_item' and mouse_action[0] != 'blit'):
 
 				screen_to_draw = 'game_screen'
 
@@ -262,6 +289,10 @@ class Game(object):
 
 			self.state = self.check_for_player_death()
 			self.draw_all()
+
+			if mouse_action[0] == 'blit':
+				scr.blit(mouse_action[1], (0, (constants.START_MESSAGE_BOX_Y * constants.FONT_SIZE) - constants.FONT_SIZE))
+
 			pygame.display.flip()
 
 		while self.state == 'game_over':
@@ -390,6 +421,88 @@ class Game(object):
 			scr.blit(more_text, (0, 0))
 			pygame.display.flip()
 
+	def enter_look_mode(self, title):
+
+		action = None
+
+		look_text = font.render(title, True, WHITE)
+
+		x = player.x
+		y = player.y
+
+		line_to_blit = font.render("*", True, WHITE)
+
+		while action is None:
+
+			for event in pygame.event.get():
+
+				if event.type == pygame.KEYDOWN:
+					if event.key == pygame.K_l:
+						x += 1
+					if event.key == pygame.K_h:
+						x -= 1
+					if event.key == pygame.K_k:
+						y -= 1
+					if event.key == pygame.K_j:
+						y += 1
+					if event.key == pygame.K_y:
+						y -= 1
+						x -= 1
+					if event.key == pygame.K_u:
+						y -= 1
+						x += 1
+					if event.key == pygame.K_n:
+						y += 1
+						x += 1
+					if event.key == pygame.K_b:
+						y += 1
+						x -= 1
+					if event.key == pygame.K_RETURN:
+						action = 'return'
+						return (x, y)
+						# here will be action
+
+			self.draw_all()
+			self.draw_bresenham_line(player.x, player.y, x, y)
+			self.print_messages()
+			scr.blit(look_text, (0, 0))
+			pygame.display.flip()
+
+	def draw_bresenham_line(self, x0, y0, x1, y1):
+	    "Bresenham's line algorithm - taken from: https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#Python"
+	
+	    line_img = font.render("*", True, WHITE)
+	
+	    dx = abs(x1 - x0)
+	    dy = abs(y1 - y0)
+	    x, y = x0, y0
+	    sx = -1 if x0 > x1 else 1
+	    sy = -1 if y0 > y1 else 1
+	
+	    if dx > dy:
+	    	err = dx / 2.0
+	    	while x != x1:
+	    		err -= dy
+	    		if err < 0:
+	    			y += sy
+	    			err += dx
+	    		x += sx
+	    		black_rect = pygame.Rect(x * constants.FONT_SIZE, y * constants.FONT_SIZE, 16, 16)
+	    		scr.fill(BLACK, black_rect)
+	    		scr.blit(line_img, (x * constants.FONT_SIZE, y * constants.FONT_SIZE))
+	    else:
+	    	err = dy / 2.0
+	    	while y != y1:
+	    		err -= dx
+	    		if err <0:
+	    			x += sx
+	    			err += dy
+	    		y += sy
+
+	    		black_rect = pygame.Rect(x * constants.FONT_SIZE, y * constants.FONT_SIZE, 16, 16)
+	    		scr.fill(BLACK, black_rect)
+	    		scr.blit(line_img, (x * constants.FONT_SIZE, y * constants.FONT_SIZE))
+
 
 class UI(object):
 	# this class will be responsible for drawing the inventory, stacking the items and showing the amount of stacked items, drawing noise level and various windows
@@ -407,12 +520,13 @@ class UI(object):
 		self.inventory_places = [[y, x, None] for y in range(constants.INVENTORY_ITEMS_START_Y, constants.INVENTORY_HEIGHT + constants.INVENTORY_ITEMS_START_Y) 
 											  for x in range(constants.INVENTORY_ITEMS_START_X, constants.INVENTORY_WIDTH + constants.INVENTORY_ITEMS_START_X)]
 
+		self.inventory_rect = pygame.Rect(constants.INVENTORY_ITEMS_START_X * constants.FONT_SIZE, constants.INVENTORY_ITEMS_START_Y * constants.FONT_SIZE,
+										  constants.INVENTORY_WIDTH * constants.FONT_SIZE, constants.INVENTORY_HEIGHT * constants.FONT_SIZE)
 
-	def draw_rect(self, start_x, start_y, width, height, border_tiles, scr):
+	def draw_rect(self, start_x, start_y, width, height, border_tiles, scr, title=None):
 		# border tiles is a list with 5 tiles - horizontal, vertical and four corners
 
 		TOP_LEFT, BOTTOM_LEFT, TOP_RIGHT, BOTTOM_RIGHT, HORIZONTAL, VERTICAL = border_tiles
-
 
 		for x in range(start_x, width + start_x):
 			for y in range(start_y, height + start_y):
@@ -438,7 +552,6 @@ class UI(object):
 				elif y == start_y and x != start_x and x != start_x + width-1 or y == start_y + height-1 and x != start_x and x != start_x + width-1:
 					scr.blit(HORIZONTAL, (_x, _y))
 
-
 		# add contents here
 		# draw name of the rect in the middle of upper part of the rect
 
@@ -446,8 +559,8 @@ class UI(object):
 		messages_IMAGES = [self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
 		information_IMAGES  = messages_IMAGES
 
-		self.draw_rect(constants.START_MESSAGE_BOX_X, constants.START_MESSAGE_BOX_Y, 30, 7, messages_IMAGES, scr)
-		self.draw_rect(constants.START_INFORMATION_BOX_X, constants.START_INFORMATION_BOX_Y, 12, 20, messages_IMAGES, scr)
+		self.draw_rect(constants.START_MESSAGE_BOX_X, constants.START_MESSAGE_BOX_Y, 30, 7, messages_IMAGES, scr, 'MESSAGES')
+		self.draw_rect(constants.START_INFORMATION_BOX_X, constants.START_INFORMATION_BOX_Y, 12, 20, messages_IMAGES, scr, player.name.upper())
 		self.draw_rect(constants.INVENTORY_BOX_X, constants.INVENTORY_BOX_Y, 12, 17, messages_IMAGES, scr)
 		self.draw_inventory(scr)
 
@@ -465,7 +578,7 @@ class UI(object):
 			scr.blit(item.img, (_x, _y))
 
 
-	def add_item_to_UI(self, item):
+	def add_item_to_UI(self, item, slot='inventory'):
 		# checks how many items there is, basicly it changes the item x and y so that it goes to the inventory area
 
 		x = 1
@@ -477,10 +590,9 @@ class UI(object):
 				item.x = place[x]
 				item.y = place[y]
 				place[slot] = item
-				print item
 				break
 
-	def remove_item_from_UI(self, item_x, item_y):
+	def remove_item_from_UI(self, item_x, item_y, slot='inventory'):
 
 		# sort inventory - goes through all items and sets them again
 
@@ -494,8 +606,16 @@ class UI(object):
 				print place
 				break
 
+	def draw_info(self, object):
+
+		# General description about any object
+		# If fighter - draw additional info
+
+		pass
+
 class Level(object):
 	pass
+
 
 def main():
 	game = Game()
@@ -510,14 +630,11 @@ if __name__ == '__main__':
 # Moving player v 
 # Items - scrolls v and potions v, equipment - sword, equipment slots
 # Inventory v
-# line of sight - to targeting, description menu
-# names of items after hovering over them
-# lantern and torches - use from the inventory
-# 
-
-
+# line of sight - to targeting v, description menu
+# names of items after hovering over them v
+# lantern and torches - use from the inventory - increasing fov
+# Optimise code - make functions more general, input processing etc... and then:
 # Spawning player randomly, in way that he does not spawn in walls
-# Moving enemy
 # Spawning enemies randomly, in way that they do not spawn in walls
 # Noise AI
 

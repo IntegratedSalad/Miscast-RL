@@ -173,6 +173,7 @@ class Tile(object):
 		self.block_sight = block_sight
 
 
+
 def is_blocked(x, y, _map, objects):
 	if _map[x][y].block_movement:
 		return True
