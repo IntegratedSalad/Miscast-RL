@@ -50,6 +50,8 @@ class Game(object):
 		ui_SPRITES = Spritesheet("tiles/Wall.png")
 		potions_SPRITES = Spritesheet("tiles/Potion.png")
 		scrolls_SPRITES = Spritesheet("tiles/Scroll.png")
+		ui_two_SPRITES = Spritesheet("tiles/GUI0.png")
+		armor_SPRITES = Spritesheet("tiles/Armor.png")
 
 		player_IMG = characters_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		wall_IMG = walls_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE))
@@ -58,9 +60,12 @@ class Game(object):
 		worm_IMG = enemies_pests_SPRITES.image_at((7 * constants.TILE_SIZE, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 22 12
 		abhorrent_creature_IMG = misc_enemies_SPRITES.image_at((0, 5 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 28 27
 		corpse_IMG = corpses_SPRITES.image_at((4 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+		inventory_slot_IMG = ui_two_SPRITES.image_at((8 * constants.TILE_SIZE, 10 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE))
 
 		hp_potion_IMG = potions_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		scroll_of_death_IMG = scrolls_SPRITES.image_at((5 * constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+
+		bronze_armor_IMG = armor_SPRITES.image_at((0, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 
 		ui_MESSAGE_HORIZONTAL = ui_SPRITES.image_at((constants.TILE_SIZE, constants.TILE_SIZE * 3, constants.TILE_SIZE, constants.TILE_SIZE))
 		ui_MESSAGE_TOP_LEFT = ui_SPRITES.image_at((0, constants.TILE_SIZE * 3, constants.TILE_SIZE, constants.TILE_SIZE))
@@ -70,7 +75,7 @@ class Game(object):
 		ui_MESSAGE_VERTICAL = ui_SPRITES.image_at((0, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE))
 
 		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
-				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG]
+				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG]
 
 	def set_map(self):
 
@@ -90,20 +95,20 @@ class Game(object):
 		pygame.font.init()
 		font = pygame.font.Font("Px437_IBM_VGA8.ttf", constants.FONT_SIZE)
 		subscript_font = pygame.font.Font("Px437_IBM_VGA8.ttf", 8) # font will be used to tell how many of exact items are in the inventory
-		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))
+		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.FULLSCREEN)
 		pygame.display.set_caption("RL")
 
 		self.images = self.get_images()
 
 		player_fighter_component = objects.Fighter(20, 4)
-		player = objects.Object(1, 6, self.images[0], 'player', blocks=True, fighter=player_fighter_component)
+		player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component)
 
 		worm_AI = objects.SimpleAI()
 		worm_fighter_component = objects.Fighter(2, 2)
 		worm = objects.Object(1, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component)
 
 		# for variety only, demo implementation
-		for n in range(constants.MAX_ENEMIES + 20):
+		for n in range(constants.MAX_ENEMIES + 30):
 			mon_x = random.randint(1, constants.MAP_WIDTH - 1)
 			mon_y = random.randint(1, constants.MAP_HEIGHT - 1)
 			if self.map[mon_x][mon_y].block_sight or (mon_x, mon_y) == (player.x, player.y):  
@@ -120,23 +125,27 @@ class Game(object):
 		abhorrent_creature = objects.Object(28, 27, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI)
 
 
-		for n in range(100):
+		for n in range(200):
 			rand_x = random.randrange(constants.MAP_WIDTH)
 			rand_y = random.randrange(constants.MAP_HEIGHT)
 
 			if not self.map[rand_x][rand_y].block_sight:
-				hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, value_of=5)
+				hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, heal_value=5)
 				hp_potion = objects.Object(player.x + 1, player.y, self.images[constants.IMAGES_POTION_HP], 'healing potion', item=hp_potion_item_component)
 				self.objects.append(hp_potion)
 
-		scroll_of_death_item_component = objects.Item(10, use_func=use_functions.instant_death, targetable=True)
+		scroll_of_death_item_component = objects.Item(targetable=True, use_func=use_functions.instant_death)
 		scroll_of_death = objects.Object(player.x + 2, player.y, self.images[constants.IMAGES_SCROLL_OF_DEATH], 'scroll of death', item=scroll_of_death_item_component)
+
+		bronze_armor_item_component = objects.Item(use_func=use_functions.equip, name='bronze_armor')
+		bronze_armor = objects.Object(player.x + 1, player.y + 1, self.images[16], 'bronze armor', item=bronze_armor_item_component)
 
 		self.objects.append(player)
 		#self.objects.append(hp_potion)
 		#self.objects.append(worm)
 		self.objects.append(abhorrent_creature)
 		self.objects.append(scroll_of_death)
+		self.objects.append(bronze_armor)
 
 		self.fov_map = field_of_view.set_fov(self.fov_map)
 		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map)
@@ -151,6 +160,10 @@ class Game(object):
 				pygame.quit()
 				exit(0)
 			if event.type == pygame.KEYDOWN:
+
+				if event.key == pygame.K_ESCAPE:
+					pygame.quit()
+					exit(0)
 				if event.key == pygame.K_l:
 					player.move(1, 0, self.map, self.fov_map, self.objects)
 					return 'move'
@@ -187,60 +200,105 @@ class Game(object):
 
 
 	def handle_mouse(self):
+		""" Returns 'took_turn' or 'idle' """
+
 		m_x, m_y = pygame.mouse.get_pos()
 
+
+		area_UI = pygame.Rect(constants.INVENTORY_BOX_X * constants.TILE_SIZE, constants.INVENTORY_BOX_Y * constants.TILE_SIZE, constants.INVENTORY_WIDTH * constants.TILE_SIZE ,constants.INVENTORY_HEIGHT * constants.TILE_SIZE)
+
+		if area_UI.collidepoint(m_x, m_y): # it either can be nothing or use | drop item
+
+			action = self.handle_clicks(player.fighter.inventory)
+
+			if action.has_key('item_to_use'):
+				self.pause_menu()
+				result = self.use_item_by_mouse(action['item_to_use'])
+				return result  # player can resign
+
+			else:
+				if action.has_key('item_to_drop'):
+					self.pause_menu()
+					self.drop_item_by_mouse(action['item_to_drop'])
+					return 'took_turn'
+
+
+		# other actions
+
+		return 'idle'
+
+		#if self.ui.inventory_rect.collidepoint(m_x, m_y):
+#
+#
+		#	for item in player.fighter.inventory:
+		#		to_check = pygame.Rect(item.x * constants.FONT_SIZE, item.y * constants.FONT_SIZE, constants.FONT_SIZE, constants.FONT_SIZE)
+#
+		#		if to_check.collidepoint(m_x, m_y):
+		#			to_blit = font.render(item.name, True, WHITE)
+		#			return ('blit', to_blit)
+#
+		#return 'idle'
+
+	def handle_clicks(self, area):
+
+		m_x, m_y = pygame.mouse.get_pos()
 		r_click = pygame.mouse.get_pressed()[2]
 		l_click = pygame.mouse.get_pressed()[0]
 
-		# make it more general
-
 		if l_click == 1:
-			# if mouse pos is in inventory
-			for item in player.fighter.inventory:
+
+			for item in area:
 
 				to_check = pygame.Rect(item.x * constants.FONT_SIZE, item.y * constants.FONT_SIZE, constants.FONT_SIZE, constants.FONT_SIZE)
 				# it creates rect that bounds item on the screen
 
 				if to_check.collidepoint(m_x, m_y):
-					if item.item.use_func is not None:
-						if not item.item.targetable:
-							item.item.use(target=player)
-						else:
-							target = self.enter_look_mode("Target what?")
-							for obj in self.objects:
-								if (obj.x, obj.y) == target:
-									item.item.use(target=obj, user=player)
-						self.ui.remove_item_from_UI(item.x, item.y)
-					return 'used_item'
+					return {'item_to_use': item}
 
 		if r_click == 1:
-			for item in player.fighter.inventory:
-				to_check = pygame.Rect(item.x * constants.FONT_SIZE, item.y * constants.FONT_SIZE, constants.FONT_SIZE, constants.FONT_SIZE)
 
+			for item in area:
+
+				to_check = pygame.Rect(item.x * constants.FONT_SIZE, item.y * constants.FONT_SIZE, constants.FONT_SIZE, constants.FONT_SIZE)
+				# it creates rect that bounds item on the screen
 
 				if to_check.collidepoint(m_x, m_y):
-					self.ui.remove_item_from_UI(item.x, item.y)
-					player.fighter.drop(self.objects, item)
-					return 'dropped_item'
+					return {'item_to_drop': item}
+
+		return {}
 
 
-		if self.ui.inventory_rect.collidepoint(m_x, m_y):
+	def use_item_by_mouse(self, item):
 
+		if item.item.targetable:
+			target = self.enter_look_mode("Target what?")
+			if target is not None:
+				self.ui.remove_item_from_UI(item.x, item.y)
+				item.item.use(target=target, user=player, item=item)
+				print target.name
+				return 'took_turn'
 
-			for item in player.fighter.inventory:
-				to_check = pygame.Rect(item.x * constants.FONT_SIZE, item.y * constants.FONT_SIZE, constants.FONT_SIZE, constants.FONT_SIZE)
+			else:
+				return 'idle'
 
-				if to_check.collidepoint(m_x, m_y):
-					to_blit = font.render(item.name, True, WHITE)
-					return ('blit', to_blit)
+		else:
+			self.ui.remove_item_from_UI(item.x, item.y)
+			item.item.use(user=player, target=player, item=item)
+			return 'took_turn'
 
 		return 'idle'
+
+
+	def drop_item_by_mouse(self, item):
+		self.ui.remove_item_from_UI(item.x, item.y)
+		player.fighter.drop(self.objects, item)
 
 
 	def run(self):
 		self.state = 'playing'
 		clock = pygame.time.Clock()
-
+		player.sended_messages.append("To exit, press ESC.")
+		player.sended_messages.append("For more help press '?'.")
 		player.sended_messages.append("You descend into your own basement.")
 		self.listen_for_messagess(player)
 
@@ -248,7 +306,6 @@ class Game(object):
 			clock.tick(60)
 			player_action = self.handle_keys()
 			mouse_action = self.handle_mouse()
-			listened = False
 
 			# process input - make so, that the keys are universal for all the windows, but they do something different for all of them
 			
@@ -256,44 +313,49 @@ class Game(object):
 
 			# here will be the state, game or menu(description etc)
 
-			print int(clock.get_fps())
+			#print int(clock.get_fps())
 
 			if player_action == 'look':
 				self.enter_look_mode("Look at what?")
 				# process request
 
-			if player_action == 'move' or (mouse_action != 'idle' and mouse_action != 'dropped_item' and mouse_action[0] != 'blit'):
-
-				screen_to_draw = 'game_screen'
-
-				for obj in self.objects:
-
-					self.check_for_death(obj)
-
-					if obj.ai:
-						obj.clear_messages() # clear messages - any previous messages are not up to date
-						obj.ai.take_turn(_map=self.map, fov_map=self.fov_map, objects=self.objects, player=player)
-
-					self.listen_for_messagess(obj)
-					listened = True
-
-			if mouse_action in ['used_item', 'dropped_item']:
-				# sort inventory and pause game
-				if not listened:
-					self.listen_for_messagess(player)
-				self.print_messages()
-				self.pause_menu()
-
-			else:
-				self.print_messages()
-
 			self.state = self.check_for_player_death()
-			self.draw_all()
+			if self.state == 'playing':
 
-			if mouse_action[0] == 'blit':
-				scr.blit(mouse_action[1], (0, (constants.START_MESSAGE_BOX_Y * constants.FONT_SIZE) - constants.FONT_SIZE))
-
-			pygame.display.flip()
+	
+	
+				# Process input - queue player requests.
+				# If player makes action that takes round - allow computer to make it
+				# Blit everything
+	
+				#progress = self.process_player_request(player_action, mouse_action)
+				# decides to move or not
+	
+				# if progress:
+	
+	
+				if player_action == 'move' or mouse_action == 'took_turn':
+	
+					screen_to_draw = 'game_screen'
+	
+					for obj in self.objects:
+	
+						self.check_for_death(obj)
+	
+						if obj.ai:
+							obj.clear_messages() # clear messages - any previous messages are not up to date
+							obj.ai.take_turn(_map=self.map, fov_map=self.fov_map, objects=self.objects, player=player)
+	
+						self.listen_for_messagess(obj)
+	
+				self.print_messages()
+	
+				self.draw_all()
+	
+				if mouse_action[0] == 'blit':
+					scr.blit(mouse_action[1], (0, (constants.START_MESSAGE_BOX_Y * constants.FONT_SIZE) - constants.FONT_SIZE))
+	
+				pygame.display.flip()
 
 		while self.state == 'game_over':
 			self.show_game_over_demo()
@@ -338,6 +400,7 @@ class Game(object):
 			# here, we will clear all their messages
 			obj.clear_messages() # clear messages - any previous messages are not up to date
 
+
 	def spawn_objects(self):
 
 		number_of_enemies = constants.MAX_ENEMIES
@@ -373,9 +436,25 @@ class Game(object):
 				pygame.quit()
 				exit(0)
 
-		scr.fill(BLACK)
+			if event.type == pygame.KEYDOWN:
+				if event.key == pygame.K_ESCAPE:
+					pygame.quit()
+					exit(0)
 
-		self.draw_all()
+		scr.fill(BLACK)
+		for x in range(0, 30):
+			for y in range(0, 30):
+				_x = x * constants.TILE_SIZE
+				_y = y * constants.TILE_SIZE
+				if self.map[x][y].block_sight and self.map[x][y].is_map_structure:
+					scr.blit(self.images[1], (_x, _y))
+				else:
+					scr.blit(self.images[2], (_x, _y))
+		#self.draw_all()
+
+		self.draw_objects()
+		self.listen_for_messagess(player)
+		self.print_messages()
 		pygame.display.flip()
 
 	def listen_for_messagess(self, obj):
@@ -397,11 +476,6 @@ class Game(object):
 			message_to_blit = font.render(message, True, WHITE)
 			scr.blit(message_to_blit, (16, _y))
 			_y -= constants.FONT_SIZE
-
-	def use_item_by_mouse(self, m_x, m_y, l_click, r_click):
-
-		if l_click == 1:
-			pass
 
 	def pause_menu(self):
 		# used to prevent player from activating bunch of items at once
@@ -458,8 +532,12 @@ class Game(object):
 						y += 1
 						x -= 1
 					if event.key == pygame.K_RETURN:
-						action = 'return'
-						return (x, y)
+						for obj in self.objects:
+							if (obj.x, obj.y) == (x, y) and obj.fighter:
+								#print 'd'
+								return obj
+
+						return None
 						# here will be action
 
 			self.draw_all()
@@ -517,11 +595,19 @@ class UI(object):
 
 		self.x_width = 0
 
-		self.inventory_places = [[y, x, None] for y in range(constants.INVENTORY_ITEMS_START_Y, constants.INVENTORY_HEIGHT + constants.INVENTORY_ITEMS_START_Y) 
-											  for x in range(constants.INVENTORY_ITEMS_START_X, constants.INVENTORY_WIDTH + constants.INVENTORY_ITEMS_START_X)]
+		self.inventory_places = [[y, x, None] for y in range(constants.INVENTORY_ITEMS_START_Y, constants.INVENTORY_PLACES_HEIGHT + constants.INVENTORY_ITEMS_START_Y) 
+											  for x in range(constants.INVENTORY_ITEMS_START_X, constants.INVENTORY_PLACES_WIDTH + constants.INVENTORY_ITEMS_START_X)]
 
 		self.inventory_rect = pygame.Rect(constants.INVENTORY_ITEMS_START_X * constants.FONT_SIZE, constants.INVENTORY_ITEMS_START_Y * constants.FONT_SIZE,
 										  constants.INVENTORY_WIDTH * constants.FONT_SIZE, constants.INVENTORY_HEIGHT * constants.FONT_SIZE)
+
+
+		self.equipment_places = [[constants.START_INFORMATION_BOX_X + (12 / 2)-1, constants.START_INFORMATION_BOX_Y + 4, None],
+								 [constants.START_INFORMATION_BOX_X + 3, constants.START_INFORMATION_BOX_Y + 6, None],
+								 [constants.START_INFORMATION_BOX_X + 7, constants.START_INFORMATION_BOX_Y + 6, None],
+								 [constants.START_INFORMATION_BOX_X + 4, constants.START_INFORMATION_BOX_Y + 8, None],
+								 [constants.START_INFORMATION_BOX_X + 6, constants.START_INFORMATION_BOX_Y + 8, None],
+								 [constants.START_INFORMATION_BOX_X + (12 / 2)-1, constants.START_INFORMATION_BOX_Y + 6, None]]
 
 	def draw_rect(self, start_x, start_y, width, height, border_tiles, scr, title=None):
 		# border tiles is a list with 5 tiles - horizontal, vertical and four corners
@@ -552,17 +638,44 @@ class UI(object):
 				elif y == start_y and x != start_x and x != start_x + width-1 or y == start_y + height-1 and x != start_x and x != start_x + width-1:
 					scr.blit(HORIZONTAL, (_x, _y))
 
+
+		if title is not None:
+
+			title_len = len(title)
+			if (title_len % 2 == 0):
+				title_even = True
+			else:
+				title_even = False
+
+			text_to_blit = font.render(title, True, WHITE)
+
+			x = (start_x + (width / 2)  - (title_len / 2)) * constants.FONT_SIZE
+			y = start_y * constants.TILE_SIZE + 4
+		
+			if title_even:
+				black_rect = pygame.Rect(x, y, title_len * constants.FONT_SIZE, constants.FONT_SIZE - 5)
+
+			else:
+				black_rect = pygame.Rect(x, y, (title_len - 1) * constants.FONT_SIZE, constants.FONT_SIZE - 5)
+			
+			scr.fill(BLACK, rect=black_rect)
+
+			x = (black_rect.centerx - (title_len * constants.FONT_SIZE) / 4)
+
+			scr.blit(text_to_blit, (x, y - 2))
+
 		# add contents here
 		# draw name of the rect in the middle of upper part of the rect
 
-	def draw(self, scr):
+	def draw(self, scr): #draw_main_screen
 		messages_IMAGES = [self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
 		information_IMAGES  = messages_IMAGES
 
 		self.draw_rect(constants.START_MESSAGE_BOX_X, constants.START_MESSAGE_BOX_Y, 30, 7, messages_IMAGES, scr, 'MESSAGES')
 		self.draw_rect(constants.START_INFORMATION_BOX_X, constants.START_INFORMATION_BOX_Y, 12, 20, messages_IMAGES, scr, player.name.upper())
-		self.draw_rect(constants.INVENTORY_BOX_X, constants.INVENTORY_BOX_Y, 12, 17, messages_IMAGES, scr)
+		self.draw_rect(constants.INVENTORY_BOX_X, constants.INVENTORY_BOX_Y, constants.INVENTORY_WIDTH, constants.INVENTORY_HEIGHT, messages_IMAGES, scr, 'INVENTORY')
 		self.draw_inventory(scr)
+		self.draw_equipment(scr)
 
 		hp_to_blit = font.render("HP: {0} / {1}".format(player.fighter.hp, player.fighter.max_hp), True, RED)
 
@@ -578,7 +691,7 @@ class UI(object):
 			scr.blit(item.img, (_x, _y))
 
 
-	def add_item_to_UI(self, item, slot='inventory'):
+	def add_item_to_UI(self, item):
 		# checks how many items there is, basicly it changes the item x and y so that it goes to the inventory area
 
 		x = 1
@@ -592,7 +705,7 @@ class UI(object):
 				place[slot] = item
 				break
 
-	def remove_item_from_UI(self, item_x, item_y, slot='inventory'):
+	def remove_item_from_UI(self, item_x, item_y):
 
 		# sort inventory - goes through all items and sets them again
 
@@ -603,7 +716,6 @@ class UI(object):
 		for place in self.inventory_places:
 			if place[x] == item_x and place[y] == item_y:
 				place[slot] = None
-				print place
 				break
 
 	def draw_info(self, object):
@@ -612,6 +724,14 @@ class UI(object):
 		# If fighter - draw additional info
 
 		pass
+
+	def draw_equipment(self, scr):
+
+		# ADD EQUIPMENT INSTANCES TO THE UI
+
+		for place in self.equipment_places:
+			scr.blit(self.images[15], (place[0] * constants.FONT_SIZE, place[1] * constants.FONT_SIZE))
+			#scr.blit()
 
 class Level(object):
 	pass
@@ -636,5 +756,19 @@ if __name__ == '__main__':
 # Optimise code - make functions more general, input processing etc... and then:
 # Spawning player randomly, in way that he does not spawn in walls
 # Spawning enemies randomly, in way that they do not spawn in walls
-# Noise AI
+# Noise AI - possible need for A* algorithm
+# Help in game - "?"
+# Descending, loading maps, saving etc.
+# Magic, spellbooks and spell menu
+# Endgame
 
+
+
+# TO FIX:
+# 1. Change FONT_SIZE to TILE_SIZE when necessary
+
+
+
+
+# Engine class?
+# That processess input, puts action into queues, returns states etc

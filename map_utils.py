@@ -181,7 +181,3 @@ def is_blocked(x, y, _map, objects):
 	for obj in objects:
 		if obj.x == x and obj.y == y and obj.blocks:
 			return True
-
-#caf = CA_CaveFactory(30,30,0.41)
-#profile.run("caf.gen_map()")
-#caf.print_grid()

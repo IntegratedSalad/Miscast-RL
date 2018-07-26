@@ -37,8 +37,8 @@ class Object(object):
 			self.y += dy
 		else:
 			for obj in objects:
-				if self.name != 'player':
-					if (self.x + dx == obj.x and self.y + dy == obj.y) and obj.fighter is not None and self.fighter is not None and obj.name == 'player':
+				if self.name != constants.PLAYER_NAME:
+					if (self.x + dx == obj.x and self.y + dy == obj.y) and obj.fighter is not None and self.fighter is not None and obj.name == constants.PLAYER_NAME:
 						self.fighter.attack(obj)
 				else:
 					if (self.x + dx == obj.x and self.y + dy == obj.y) and obj.fighter is not None and self.fighter is not None:
@@ -79,6 +79,7 @@ class Fighter(object):
 		self.attack_stat = attack_stat
 		self.area_of_hearing = area_of_hearing
 		self.inventory = []
+		self.equipment = []
 
 	def attack(self, target):
 
@@ -93,9 +94,6 @@ class Fighter(object):
 
 		self.owner.sended_messages.append(mess)
 
-		#print mess
-
-
 	def kill(self, fov_map, player_x, player_y, _map, images):
 		self.owner.ai = None
 		self.owner.fighter = None
@@ -104,14 +102,14 @@ class Fighter(object):
 		self.owner.img = images[6] # instead, use specific image for every character and corpse stats overall
 		self.owner.clear(self.owner.x, self.owner.y, _map)
 		field_of_view.fov_recalculate(fov_map, player_x, player_y, _map)
-		self.owner.sended_messages.append(self.owner.name.capitalize() + " is dead")
+		self.owner.sended_messages.append(self.owner.name.capitalize() + " is dead.")
 
 	def get(self, objects):
 		for obj in objects:
 			if obj.item is not None:
 				if self.owner.x == obj.x and self.owner.y == obj.y:
 					self.inventory.append(obj)
-					self.owner.sended_messages.append("{0} picks up {1}".format(self.owner.name.capitalize(), obj.name))
+					self.owner.sended_messages.append("{0} picks up {1}.".format(self.owner.name.capitalize(), obj.name))
 					objects.remove(obj)
 					return obj
 
@@ -119,7 +117,7 @@ class Fighter(object):
 		obj.x = self.owner.x
 		obj.y = self.owner.y
 		self.inventory.remove(obj)
-		self.owner.sended_messages.append("{0} drops {1}".format(self.owner.name.capitalize(), obj.name))
+		self.owner.sended_messages.append("{0} drops {1}.".format(self.owner.name.capitalize(), obj.name))
 		objects.append(obj)
 
 
@@ -164,17 +162,31 @@ class NoiseAI(object):
 
 
 class Item(object):
-	def __init__(self, value_of, use_func=None, can_break=False, targetable=False):
+	def __init__(self, use_func=None, can_break=False, targetable=False, **kwargs):
 		self.use_func = use_func
 		self.can_break = can_break
-		self.value_of = value_of
 		self.targetable = targetable
+		self.kwargs = kwargs
 
-	def use(self, target=None, user=None):
+	def use(self, **kwargs):
+		# it must be generic
 
-		if self.use_func(target, self.value_of) != 'cancelled':
+		user = kwargs.get('user')
+
+		kwargs.update(self.kwargs)
+
+		if self.use_func(**kwargs) != 'cancelled':
 			# remove from obj inventory
 			user.fighter.inventory.remove(self.owner)
 		else:
 			user.sended_messages.append("You cannot use that.")
+
+
+class Equipment(object):
+
+	def __init__(self, slot, power_bonus, defence_bonus):
+		self.slot = slot
+		self.power_bonus = power_bonus
+		self.defence_bonus = defence_bonus
+
 
