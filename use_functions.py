@@ -36,15 +36,31 @@ def instant_death(**kwargs):
 def increase_health(**kwargs):
 	pass
 
-def teleport(**kwargs):
-	pass
+def uncontrolled_teleportation(**kwargs):
+
+	target = kwargs.get('target')
+	_map = kwargs.get('map')
+
+	while True:
+		x = random.randint(1, constants.MAP_WIDTH - 1) 
+		y = random.randint(1, constants.MAP_HEIGHT - 1)
+		if not _map[x][y].block_sight:
+			target.x = x
+			target.y = y
+			break
+
+	target.sended_messages.append("{0} feels unstable!".format(target.name.capitalize()))
+	target.sended_messages.append("{0} shifts through space and time.".format(target.name.capitalize()))
+
+	return 'used'
 
 def equip(**kwargs):
 
 	target = kwargs.get('target')
 	item = kwargs.get('item')
+	UI = kwargs.get('UI')
 
 	target.fighter.equipment.append(item)
-	target.sended_messages.append("{0} wears {1}".format(target.name.capitalize(), item.name.capitalize()))
+	target.sended_messages.append("{0} wears {1}".format(target.name.capitalize(), item.name.title()))
 
 	return 'used'

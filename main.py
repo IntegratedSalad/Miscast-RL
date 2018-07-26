@@ -64,6 +64,7 @@ class Game(object):
 
 		hp_potion_IMG = potions_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		scroll_of_death_IMG = scrolls_SPRITES.image_at((5 * constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+		scroll_of_uncontrolled_teleportation_IMG = scrolls_SPRITES.image_at((4 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 
 		bronze_armor_IMG = armor_SPRITES.image_at((0, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 
@@ -75,7 +76,8 @@ class Game(object):
 		ui_MESSAGE_VERTICAL = ui_SPRITES.image_at((0, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE))
 
 		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
-				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG]
+				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG,
+				scroll_of_uncontrolled_teleportation_IMG]
 
 	def set_map(self):
 
@@ -95,7 +97,7 @@ class Game(object):
 		pygame.font.init()
 		font = pygame.font.Font("Px437_IBM_VGA8.ttf", constants.FONT_SIZE)
 		subscript_font = pygame.font.Font("Px437_IBM_VGA8.ttf", 8) # font will be used to tell how many of exact items are in the inventory
-		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.FULLSCREEN)
+		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))#, pygame.FULLSCREEN)
 		pygame.display.set_caption("RL")
 
 		self.images = self.get_images()
@@ -137,8 +139,15 @@ class Game(object):
 		scroll_of_death_item_component = objects.Item(targetable=True, use_func=use_functions.instant_death)
 		scroll_of_death = objects.Object(player.x + 2, player.y, self.images[constants.IMAGES_SCROLL_OF_DEATH], 'scroll of death', item=scroll_of_death_item_component)
 
-		bronze_armor_item_component = objects.Item(use_func=use_functions.equip, name='bronze_armor')
-		bronze_armor = objects.Object(player.x + 1, player.y + 1, self.images[16], 'bronze armor', item=bronze_armor_item_component)
+		for n in range(5):
+			scroll_of_uncontrolled_teleportation_item_component = objects.Item(use_func=use_functions.uncontrolled_teleportation, map=self.map)
+			scroll_of_uncontrolled_teleportation = objects.Object(player.x + 2, player.y+1, self.images[17], 'scroll of uncontrolled teleportation', item=scroll_of_uncontrolled_teleportation_item_component)
+			self.objects.append(scroll_of_uncontrolled_teleportation)
+
+
+		bronze_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=4)
+		bronze_armor_item_component = objects.Item(use_func=use_functions.equip, name='bronze breastplate', equipment=bronze_armor_equipment_component)
+		bronze_armor = objects.Object(player.x + 1, player.y + 1, self.images[16], 'bronze breastplate', item=bronze_armor_item_component)
 
 		self.objects.append(player)
 		#self.objects.append(hp_potion)
@@ -351,6 +360,7 @@ class Game(object):
 				self.print_messages()
 	
 				self.draw_all()
+				self.ui.add_item_to_equipment_slot()
 	
 				if mouse_action[0] == 'blit':
 					scr.blit(mouse_action[1], (0, (constants.START_MESSAGE_BOX_Y * constants.FONT_SIZE) - constants.FONT_SIZE))
@@ -400,7 +410,6 @@ class Game(object):
 			# here, we will clear all their messages
 			obj.clear_messages() # clear messages - any previous messages are not up to date
 
-
 	def spawn_objects(self):
 
 		number_of_enemies = constants.MAX_ENEMIES
@@ -419,7 +428,7 @@ class Game(object):
 			pass
 
 	def check_for_death(self, obj):
-		if obj.fighter is not None and obj.name != 'player':
+		if obj.fighter is not None and obj.name != player.name:
 			if obj.fighter.hp <= 0:
 				obj.fighter.kill(self.fov_map, player.x, player.y, self.map, self.images)
 
@@ -495,7 +504,7 @@ class Game(object):
 			scr.blit(more_text, (0, 0))
 			pygame.display.flip()
 
-	def enter_look_mode(self, title):
+	def enter_look_mode(self, title): # make that more generic, so it can be used in controled_teleportation
 
 		action = None
 
@@ -590,11 +599,6 @@ class UI(object):
 		self.inv_start_pos_x = constants.INVENTORY_ITEMS_START_X * constants.FONT_SIZE
 		self.inv_start_pos_y = constants.INVENTORY_ITEMS_START_Y * constants.FONT_SIZE
 
-		self.x_cord = constants.INVENTORY_ITEMS_START_X
-		self.y_cord = constants.INVENTORY_ITEMS_START_Y
-
-		self.x_width = 0
-
 		self.inventory_places = [[y, x, None] for y in range(constants.INVENTORY_ITEMS_START_Y, constants.INVENTORY_PLACES_HEIGHT + constants.INVENTORY_ITEMS_START_Y) 
 											  for x in range(constants.INVENTORY_ITEMS_START_X, constants.INVENTORY_PLACES_WIDTH + constants.INVENTORY_ITEMS_START_X)]
 
@@ -602,12 +606,19 @@ class UI(object):
 										  constants.INVENTORY_WIDTH * constants.FONT_SIZE, constants.INVENTORY_HEIGHT * constants.FONT_SIZE)
 
 
-		self.equipment_places = [[constants.START_INFORMATION_BOX_X + (12 / 2)-1, constants.START_INFORMATION_BOX_Y + 4, None],
-								 [constants.START_INFORMATION_BOX_X + 3, constants.START_INFORMATION_BOX_Y + 6, None],
+		self.equipment_places_to_blit = [[constants.START_INFORMATION_BOX_X + (12 / 2)-1, constants.START_INFORMATION_BOX_Y + 4, None], # Helmet
+								 [constants.START_INFORMATION_BOX_X + 3, constants.START_INFORMATION_BOX_Y + 6, None], # Breastplate
 								 [constants.START_INFORMATION_BOX_X + 7, constants.START_INFORMATION_BOX_Y + 6, None],
 								 [constants.START_INFORMATION_BOX_X + 4, constants.START_INFORMATION_BOX_Y + 8, None],
 								 [constants.START_INFORMATION_BOX_X + 6, constants.START_INFORMATION_BOX_Y + 8, None],
 								 [constants.START_INFORMATION_BOX_X + (12 / 2)-1, constants.START_INFORMATION_BOX_Y + 6, None]]
+
+
+		self.equipment_places = { 'helmet': [constants.START_INFORMATION_BOX_X + (12 / 2)-1, constants.START_INFORMATION_BOX_Y + 4, None],
+								  'breastplate': [constants.START_INFORMATION_BOX_X + (12 / 2)-1, constants.START_INFORMATION_BOX_Y + 6, None],
+								  'right_arm': [constants.START_INFORMATION_BOX_X + 7, constants.START_INFORMATION_BOX_Y + 6, None],
+
+								}
 
 	def draw_rect(self, start_x, start_y, width, height, border_tiles, scr, title=None):
 		# border tiles is a list with 5 tiles - horizontal, vertical and four corners
@@ -718,20 +729,37 @@ class UI(object):
 				place[slot] = None
 				break
 
-	def draw_info(self, object):
+	def draw_info_window(self, object):
 
 		# General description about any object
 		# If fighter - draw additional info
 
 		pass
 
+	def add_item_to_equipment_slot(self): # this is wrong, update only on request
+
+		for piece in player.fighter.equipment:
+			slot = piece.item.equipment.slot
+			if self.equipment_places[slot][2] is None:
+				self.equipment_places[slot][2] = piece
+				x = self.equipment_places[slot][0]
+				y = self.equipment_places[slot][1]
+				piece.x = x
+				piece.y = y
+
 	def draw_equipment(self, scr):
 
 		# ADD EQUIPMENT INSTANCES TO THE UI
 
-		for place in self.equipment_places:
+		for place in self.equipment_places_to_blit:
 			scr.blit(self.images[15], (place[0] * constants.FONT_SIZE, place[1] * constants.FONT_SIZE))
-			#scr.blit()
+		
+
+		if self.equipment_places['breastplate'][2] is not None:
+			image_to_blit = self.equipment_places['breastplate'][2].img
+			x = self.equipment_places['breastplate'][2].x * constants.TILE_SIZE
+			y = self.equipment_places['breastplate'][2].y * constants.TILE_SIZE
+			scr.blit(image_to_blit, (x, y))
 
 class Level(object):
 	pass
@@ -747,28 +775,46 @@ if __name__ == '__main__':
 
 
 # Goals:
+
+# Step 1: - Basic
 # Moving player v 
+# Basic monster v
 # Items - scrolls v and potions v, equipment - sword, equipment slots
 # Inventory v
-# line of sight - to targeting v, description menu
-# names of items after hovering over them v
-# lantern and torches - use from the inventory - increasing fov
+# Line of sight - to targeting v, description menu
+# Names of items after hovering over them <- reimplementation needed
+
+# Step 2: - Core mechanics that will seperate my game from others
+# Lantern and torches - use from the inventory - increasing fov
 # Optimise code - make functions more general, input processing etc... and then:
+# Noise AI - possible need for an A* algorithm
+# Making noise - either by shouting , tumbling over  or throwing
+# Smoke - a place that blocks sight but not movement
+
+# Step 3: - Polishing and roguelike elements such as permadeath, levels etc.
 # Spawning player randomly, in way that he does not spawn in walls
 # Spawning enemies randomly, in way that they do not spawn in walls
-# Noise AI - possible need for A* algorithm
 # Help in game - "?"
 # Descending, loading maps, saving etc.
-# Magic, spellbooks and spell menu
-# Endgame
+# Magic, spellbooks and spell menu.
+# Endgame - [?]
+# Main menu
 
 
 
 # TO FIX:
 # 1. Change FONT_SIZE to TILE_SIZE when necessary
+# When player dies, game doesn't acknowledge that
 
 
 
 
 # Engine class?
 # That processess input, puts action into queues, returns states etc
+
+
+# Make the object that has the ai, have its own fov map - it's not good that it works in ways of "If you can see me, I can see you", because it subtracts the tactical possibility of hiding, while still seing other object etc.
+# Another problem that this creates, is that when I will be going to implement lighting, and objects that create light (augments the fov when they're in my fov), is simply that it augments the vision of enemies!
+
+
+# Maybe movable camera? although it is very hard

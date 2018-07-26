@@ -127,7 +127,7 @@ class SimpleAI(object):
 
 	def take_turn(self, _map, fov_map, objects, player):
 
-		if fov_map[self.owner.x][self.owner.y] != 1 and self.owner.distance_to(player) >= self.owner.fighter.area_of_hearing:
+		if fov_map[self.owner.x][self.owner.y] != 1 and self.owner.distance_to(player) >= self.owner.fighter.area_of_hearing: 
 			# walk randomly
 			rand_dir_x = random.randint(-1, 1)
 			rand_dir_y = random.randint(-1, 1)
@@ -162,11 +162,15 @@ class NoiseAI(object):
 
 
 class Item(object):
-	def __init__(self, use_func=None, can_break=False, targetable=False, **kwargs):
+	def __init__(self, use_func=None, equipment=None, can_break=False, targetable=False, **kwargs):
 		self.use_func = use_func
 		self.can_break = can_break
 		self.targetable = targetable
+		self.equipment = equipment
 		self.kwargs = kwargs
+
+		if self.equipment:
+			self.equipment.owner = self
 
 	def use(self, **kwargs):
 		# it must be generic
@@ -175,16 +179,18 @@ class Item(object):
 
 		kwargs.update(self.kwargs)
 
-		if self.use_func(**kwargs) != 'cancelled':
-			# remove from obj inventory
-			user.fighter.inventory.remove(self.owner)
+		if self.use_func is not None:
+
+			if self.use_func(**kwargs) == 'used':
+				# remove from obj inventory
+				user.fighter.inventory.remove(self.owner)
 		else:
 			user.sended_messages.append("You cannot use that.")
 
 
 class Equipment(object):
 
-	def __init__(self, slot, power_bonus, defence_bonus):
+	def __init__(self, slot, power_bonus=0, defence_bonus=0):
 		self.slot = slot
 		self.power_bonus = power_bonus
 		self.defence_bonus = defence_bonus
