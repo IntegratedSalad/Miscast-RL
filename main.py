@@ -52,6 +52,9 @@ class Game(object):
 		scrolls_SPRITES = Spritesheet("tiles/Scroll.png")
 		ui_two_SPRITES = Spritesheet("tiles/GUI0.png")
 		armor_SPRITES = Spritesheet("tiles/Armor.png")
+		medium_weapons_SPRITES = Spritesheet("tiles/MedWep.png")
+		helmets_SPRITES = Spritesheet("tiles/Hat.png")
+		long_weapons = Spritesheet("tiles/LongWep.png")
 
 		player_IMG = characters_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		wall_IMG = walls_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE))
@@ -61,12 +64,22 @@ class Game(object):
 		abhorrent_creature_IMG = misc_enemies_SPRITES.image_at((0, 5 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 28 27
 		corpse_IMG = corpses_SPRITES.image_at((4 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		inventory_slot_IMG = ui_two_SPRITES.image_at((8 * constants.TILE_SIZE, 10 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE))
+		great_steel_long_sword_IMG = long_weapons.image_at((0, constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+
 
 		hp_potion_IMG = potions_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+		ultimate_hp_potion_IMG = potions_SPRITES.image_at((1 * constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		scroll_of_death_IMG = scrolls_SPRITES.image_at((5 * constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		scroll_of_uncontrolled_teleportation_IMG = scrolls_SPRITES.image_at((4 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 
+
+		iron_sword_IMG = medium_weapons_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+
+
 		bronze_armor_IMG = armor_SPRITES.image_at((0, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+		crystal_armor_IMG = armor_SPRITES.image_at((7 * constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+		crown_IMG = helmets_SPRITES.image_at((2 * constants.TILE_SIZE, 3 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+
 
 		ui_MESSAGE_HORIZONTAL = ui_SPRITES.image_at((constants.TILE_SIZE, constants.TILE_SIZE * 3, constants.TILE_SIZE, constants.TILE_SIZE))
 		ui_MESSAGE_TOP_LEFT = ui_SPRITES.image_at((0, constants.TILE_SIZE * 3, constants.TILE_SIZE, constants.TILE_SIZE))
@@ -77,7 +90,7 @@ class Game(object):
 
 		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
 				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG,
-				scroll_of_uncontrolled_teleportation_IMG]
+				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG, ultimate_hp_potion_IMG, great_steel_long_sword_IMG]
 
 	def set_map(self):
 
@@ -97,16 +110,18 @@ class Game(object):
 		pygame.font.init()
 		font = pygame.font.Font("Px437_IBM_VGA8.ttf", constants.FONT_SIZE)
 		subscript_font = pygame.font.Font("Px437_IBM_VGA8.ttf", 8) # font will be used to tell how many of exact items are in the inventory
-		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))#, pygame.FULLSCREEN)
+
+		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.FULLSCREEN)
+
 		pygame.display.set_caption("RL")
 
 		self.images = self.get_images()
 
-		player_fighter_component = objects.Fighter(20, 4)
+		player_fighter_component = objects.Fighter(20, 3, 5)
 		player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component)
 
 		worm_AI = objects.SimpleAI()
-		worm_fighter_component = objects.Fighter(2, 2)
+		worm_fighter_component = objects.Fighter(2, 2, 1)
 		worm = objects.Object(1, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component)
 
 		# for variety only, demo implementation
@@ -117,14 +132,14 @@ class Game(object):
 				continue
 			else:
 				worm_AI = objects.SimpleAI()
-				worm_fighter_component = objects.Fighter(2, 1)
+				worm_fighter_component = objects.Fighter(2, 2, 1)
 				worm = objects.Object(mon_x, mon_y, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component) # 2 7
 				#worm = objects.Object(2, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component) # 2 7
 				self.objects.append(worm)
  
  		abhorrent_creature_AI = objects.SimpleAI()
- 		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 100, area_of_hearing=15)
-		abhorrent_creature = objects.Object(28, 27, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI)
+ 		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50, area_of_hearing=15)
+		abhorrent_creature = objects.Object(28, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI)
 
 
 		for n in range(200):
@@ -139,15 +154,43 @@ class Game(object):
 		scroll_of_death_item_component = objects.Item(targetable=True, use_func=use_functions.instant_death)
 		scroll_of_death = objects.Object(player.x + 2, player.y, self.images[constants.IMAGES_SCROLL_OF_DEATH], 'scroll of death', item=scroll_of_death_item_component)
 
+		ultimate_hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, heal_value=50)
+		ultimate_hp_potion = objects.Object(player.x + 3, player.y, self.images[21], 'ultimate hp potion', item=ultimate_hp_potion_item_component)
+
+
 		for n in range(5):
 			scroll_of_uncontrolled_teleportation_item_component = objects.Item(use_func=use_functions.uncontrolled_teleportation, map=self.map)
 			scroll_of_uncontrolled_teleportation = objects.Object(player.x + 2, player.y+1, self.images[17], 'scroll of uncontrolled teleportation', item=scroll_of_uncontrolled_teleportation_item_component)
 			self.objects.append(scroll_of_uncontrolled_teleportation)
 
 
+
+		self.ui = UI(player.fighter, self.images, 'game_screen')
 		bronze_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=4)
-		bronze_armor_item_component = objects.Item(use_func=use_functions.equip, name='bronze breastplate', equipment=bronze_armor_equipment_component)
+		bronze_armor_item_component = objects.Item(use_func=use_functions.equip, name='bronze breastplate', equipment=bronze_armor_equipment_component, UI=self.ui)
 		bronze_armor = objects.Object(player.x + 1, player.y + 1, self.images[16], 'bronze breastplate', item=bronze_armor_item_component)
+
+		crystal_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=50)
+		crystal_armor_item_component = objects.Item(use_func=use_functions.equip, name='bronze breastplate', equipment=crystal_armor_equipment_component, UI=self.ui)
+		crystal_armor = objects.Object(player.x, player.y + 1, self.images[18], 'crystal breastplate', item=crystal_armor_item_component)
+
+		crown_equipment_component = objects.Equipment(slot='helmet', defence_bonus=2, max_health_bonus=100)
+		crown_item_component = objects.Item(use_func=use_functions.equip, name='golden crown of great health', equipment=crown_equipment_component, UI=self.ui)
+		crown = objects.Object(player.x + 3, player.y + 1, self.images[20], 'golden crown of great health', item=crown_item_component)
+
+
+
+
+		iron_sword_equipment_component = objects.Equipment(slot='right_hand', power_bonus=10) # for now fixed hand
+		iron_sword_item_component = objects.Item(use_func=use_functions.equip, name='iron sword', equipment=iron_sword_equipment_component, UI=self.ui)
+		iron_sword = objects.Object(player.x + 1, player.y - 1, self.images[19], 'iron sword', item=iron_sword_item_component)
+		great_steel_long_sword_equipment_component = objects.Equipment(slot='left_hand', power_bonus=30)
+		great_steel_long_sword_item_component = objects.Item(use_func=use_functions.equip, name='great steel long sword', equipment=great_steel_long_sword_equipment_component, UI=self.ui)
+		great_steel_long_sword = objects.Object(player.x + 1, player.y + 2, self.images[22], 'great steel long sword', item=great_steel_long_sword_item_component)
+
+
+
+
 
 		self.objects.append(player)
 		#self.objects.append(hp_potion)
@@ -155,10 +198,14 @@ class Game(object):
 		self.objects.append(abhorrent_creature)
 		self.objects.append(scroll_of_death)
 		self.objects.append(bronze_armor)
+		self.objects.append(crystal_armor)
+		self.objects.append(iron_sword)
+		self.objects.append(crown)
+		self.objects.append(ultimate_hp_potion)
+		self.objects.append(great_steel_long_sword)
 
 		self.fov_map = field_of_view.set_fov(self.fov_map)
 		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map)
-		self.ui = UI(player.fighter, self.images, 'game_screen')
 
 	def handle_keys(self):
 
@@ -209,21 +256,24 @@ class Game(object):
 
 
 	def handle_mouse(self):
-		""" Returns 'took_turn' or 'idle' """
+		""" Returns 'took_turn' or 'idle' 
+			Action can be use or drop item
+		"""
 
 		m_x, m_y = pygame.mouse.get_pos()
 
+		area_Inventory = pygame.Rect(constants.INVENTORY_BOX_X * constants.TILE_SIZE, constants.INVENTORY_BOX_Y * constants.TILE_SIZE, constants.INVENTORY_WIDTH * constants.TILE_SIZE ,constants.INVENTORY_HEIGHT * constants.TILE_SIZE)
+		area_Equipment = pygame.Rect(constants.EQUIPMENT_AREA_START_X * constants.TILE_SIZE, constants.EQUIPMENT_AREA_START_Y * constants.TILE_SIZE, constants.EQUIPMENT_AREA_WIDTH * constants.TILE_SIZE,
+			constants.EQUIPMENT_AREA_HEIGHT * constants.TILE_SIZE)
 
-		area_UI = pygame.Rect(constants.INVENTORY_BOX_X * constants.TILE_SIZE, constants.INVENTORY_BOX_Y * constants.TILE_SIZE, constants.INVENTORY_WIDTH * constants.TILE_SIZE ,constants.INVENTORY_HEIGHT * constants.TILE_SIZE)
-
-		if area_UI.collidepoint(m_x, m_y): # it either can be nothing or use | drop item
+		if area_Inventory.collidepoint(m_x, m_y):
 
 			action = self.handle_clicks(player.fighter.inventory)
 
 			if action.has_key('item_to_use'):
 				self.pause_menu()
 				result = self.use_item_by_mouse(action['item_to_use'])
-				return result  # player can resign
+				return result  # player can resign, it then returns idle
 
 			else:
 				if action.has_key('item_to_drop'):
@@ -232,8 +282,29 @@ class Game(object):
 					return 'took_turn'
 
 
-		# other actions
+		if area_Equipment.collidepoint(m_x, m_y): 
+			action = self.handle_clicks(player.fighter.equipment)
+		
+			if action.has_key('item_to_use'):
+	
+				item = action['item_to_use']
+	
+				# activate special effects, which I am not going to implement now
+				# but the one that i WILL, will be light
+				self.pause_menu()
+				# use function of torch
+				player.sended_messages.append("You tap your {0} but nothing happens.".format(item.name.title()))
+				return 'took_turn'
 
+			else:
+				if action.has_key('item_to_drop'):
+
+					item = action['item_to_drop']
+
+					self.pause_menu()
+					self.remove_equipment_by_mouse(item)
+					player.sended_messages.append("You remove your {0}.".format(item.name.title()))
+					return 'took_turn'
 		return 'idle'
 
 		#if self.ui.inventory_rect.collidepoint(m_x, m_y):
@@ -284,7 +355,6 @@ class Game(object):
 			if target is not None:
 				self.ui.remove_item_from_UI(item.x, item.y)
 				item.item.use(target=target, user=player, item=item)
-				print target.name
 				return 'took_turn'
 
 			else:
@@ -302,6 +372,10 @@ class Game(object):
 		self.ui.remove_item_from_UI(item.x, item.y)
 		player.fighter.drop(self.objects, item)
 
+
+	def remove_equipment_by_mouse(self, item):
+		self.ui.remove_item_from_equipment_slot(item)
+		player.fighter.equipment.remove(item)
 
 	def run(self):
 		self.state = 'playing'
@@ -332,7 +406,6 @@ class Game(object):
 			if self.state == 'playing':
 
 	
-	
 				# Process input - queue player requests.
 				# If player makes action that takes round - allow computer to make it
 				# Blit everything
@@ -357,11 +430,8 @@ class Game(object):
 	
 						self.listen_for_messagess(obj)
 	
-				self.print_messages()
-	
 				self.draw_all()
-				self.ui.add_item_to_equipment_slot()
-	
+
 				if mouse_action[0] == 'blit':
 					scr.blit(mouse_action[1], (0, (constants.START_MESSAGE_BOX_Y * constants.FONT_SIZE) - constants.FONT_SIZE))
 	
@@ -372,6 +442,7 @@ class Game(object):
 
 	def draw_all(self):
 
+		self.print_messages()
 		# self.ui.draw_current_view
 
 		if self.ui.current_view == 'game_screen' or 'inventory_screen':
@@ -504,7 +575,7 @@ class Game(object):
 			scr.blit(more_text, (0, 0))
 			pygame.display.flip()
 
-	def enter_look_mode(self, title): # make that more generic, so it can be used in controled_teleportation
+	def enter_look_mode(self, title):
 
 		action = None
 
@@ -592,7 +663,7 @@ class Game(object):
 
 
 class UI(object):
-	# this class will be responsible for drawing the inventory, stacking the items and showing the amount of stacked items, drawing noise level and various windows
+	# this class is responsible for drawing the inventory, stacking the items and showing the amount of stacked items, drawing noise level and various windows
 	def __init__(self, player, images, current_view):
 		self.images = images
 		self.current_view = current_view
@@ -605,19 +676,16 @@ class UI(object):
 		self.inventory_rect = pygame.Rect(constants.INVENTORY_ITEMS_START_X * constants.FONT_SIZE, constants.INVENTORY_ITEMS_START_Y * constants.FONT_SIZE,
 										  constants.INVENTORY_WIDTH * constants.FONT_SIZE, constants.INVENTORY_HEIGHT * constants.FONT_SIZE)
 
-
-		self.equipment_places_to_blit = [[constants.START_INFORMATION_BOX_X + (12 / 2)-1, constants.START_INFORMATION_BOX_Y + 4, None], # Helmet
-								 [constants.START_INFORMATION_BOX_X + 3, constants.START_INFORMATION_BOX_Y + 6, None], # Breastplate
-								 [constants.START_INFORMATION_BOX_X + 7, constants.START_INFORMATION_BOX_Y + 6, None],
-								 [constants.START_INFORMATION_BOX_X + 4, constants.START_INFORMATION_BOX_Y + 8, None],
-								 [constants.START_INFORMATION_BOX_X + 6, constants.START_INFORMATION_BOX_Y + 8, None],
-								 [constants.START_INFORMATION_BOX_X + (12 / 2)-1, constants.START_INFORMATION_BOX_Y + 6, None]]
-
-
-		self.equipment_places = { 'helmet': [constants.START_INFORMATION_BOX_X + (12 / 2)-1, constants.START_INFORMATION_BOX_Y + 4, None],
-								  'breastplate': [constants.START_INFORMATION_BOX_X + (12 / 2)-1, constants.START_INFORMATION_BOX_Y + 6, None],
-								  'right_arm': [constants.START_INFORMATION_BOX_X + 7, constants.START_INFORMATION_BOX_Y + 6, None],
-
+		self.equipment_places = { 'helmet': [constants.UI_HELMET_SLOT, None],
+								  'breastplate': [constants.UI_BREASTPLATE_SLOT, None],
+								  'right_hand': [constants.UI_RIGHT_HAND_SLOT, None],
+								  'left_hand': [constants.UI_LEFT_HAND_SLOT, None],
+								  'left_foot': [constants.UI_LEFT_FOOT_SLOT, None],
+								  'right_foot': [constants.UI_RIGHT_FOOT_SLOT, None],
+								  'amulet': [constants.UI_AMULET_SLOT, None],
+								  'accessory': [constants.UI_ACCESSORY_SLOT, None],
+								  'left_ring': [constants.UI_LEFT_RING_SLOT, None],
+								  'right_ring': [constants.UI_RIGHT_RING_SLOT, None]
 								}
 
 	def draw_rect(self, start_x, start_y, width, height, border_tiles, scr, title=None):
@@ -629,7 +697,6 @@ class UI(object):
 			for y in range(start_y, height + start_y):
 				_x = x * constants.TILE_SIZE
 				_y = y * constants.TILE_SIZE
-
 
 				if x == start_x and y == start_y:
 					scr.blit(TOP_LEFT, (_x, _y))
@@ -690,8 +757,7 @@ class UI(object):
 
 		hp_to_blit = font.render("HP: {0} / {1}".format(player.fighter.hp, player.fighter.max_hp), True, RED)
 
-		scr.blit(hp_to_blit, (31 * constants.FONT_SIZE, 16))
-
+		scr.blit(hp_to_blit, (constants.HP_START_X * constants.TILE_SIZE, constants.HP_START_Y))
 
 	def draw_inventory(self, scr): # change that
 		for item in player.fighter.inventory:
@@ -700,7 +766,6 @@ class UI(object):
 			_y = item.y * constants.FONT_SIZE
 
 			scr.blit(item.img, (_x, _y))
-
 
 	def add_item_to_UI(self, item):
 		# checks how many items there is, basicly it changes the item x and y so that it goes to the inventory area
@@ -732,34 +797,58 @@ class UI(object):
 	def draw_info_window(self, object):
 
 		# General description about any object
-		# If fighter - draw additional info
+		# If object.fighter - draw additional info
 
 		pass
 
-	def add_item_to_equipment_slot(self): # this is wrong, update only on request
+	def add_item_to_equipment_slot(self, piece_of_equipment): # this is wrong, update only on request
 
-		for piece in player.fighter.equipment:
-			slot = piece.item.equipment.slot
-			if self.equipment_places[slot][2] is None:
-				self.equipment_places[slot][2] = piece
-				x = self.equipment_places[slot][0]
-				y = self.equipment_places[slot][1]
-				piece.x = x
-				piece.y = y
+		slot = piece_of_equipment.item.equipment.slot
+		if self.equipment_places[slot][1] is None:
+			self.equipment_places[slot][1] = piece_of_equipment
+			x = self.equipment_places[slot][0][0]
+			y = self.equipment_places[slot][0][1]
+			piece_of_equipment.x = x
+			piece_of_equipment.y = y
+			self.remove_item_from_UI(piece_of_equipment.x, piece_of_equipment.y)
+			return True
+		else:
+			return False
+
+	def remove_item_from_equipment_slot(self, piece_of_equipment):
+		slot = piece_of_equipment.item.equipment.slot
+
+		if self.equipment_places[slot][1] is not None:
+			self.equipment_places[slot][1] = None
+			player.fighter.inventory.append(piece_of_equipment)
+			self.add_item_to_UI(piece_of_equipment)
 
 	def draw_equipment(self, scr):
 
-		# ADD EQUIPMENT INSTANCES TO THE UI
+		helmet = self.equipment_places['helmet']
+		breastplate = self.equipment_places['breastplate']
+		l_hand = self.equipment_places['left_hand']
+		r_hand = self.equipment_places['right_hand']
+		l_foot =self.equipment_places['left_foot']
+		r_foot = self.equipment_places['right_foot']
+		l_ring = self.equipment_places['left_ring']
+		r_ring = self.equipment_places['right_ring']
+		amulet = self.equipment_places['amulet']
+		accessory = self.equipment_places['accessory']
 
-		for place in self.equipment_places_to_blit:
-			scr.blit(self.images[15], (place[0] * constants.FONT_SIZE, place[1] * constants.FONT_SIZE))
-		
 
-		if self.equipment_places['breastplate'][2] is not None:
-			image_to_blit = self.equipment_places['breastplate'][2].img
-			x = self.equipment_places['breastplate'][2].x * constants.TILE_SIZE
-			y = self.equipment_places['breastplate'][2].y * constants.TILE_SIZE
-			scr.blit(image_to_blit, (x, y))
+		items = [helmet, breastplate, l_hand, r_hand, l_foot, r_foot, l_ring, r_ring, amulet, accessory]
+
+		for i in items:
+			scr.blit(self.images[15], (i[0][0] * constants.FONT_SIZE, i[0][1] * constants.FONT_SIZE))
+
+		for piece in items:
+			if piece[1] is not None:
+				image_to_blit = piece[1].img
+				x = piece[1].x * constants.TILE_SIZE
+				y = piece[1].y * constants.TILE_SIZE
+				scr.blit(image_to_blit, (x, y))
+
 
 class Level(object):
 	pass
@@ -776,10 +865,11 @@ if __name__ == '__main__':
 
 # Goals:
 
-# Step 1: - Basic
+# Step 1: - Basics
 # Moving player v 
 # Basic monster v
-# Items - scrolls v and potions v, equipment - sword, equipment slots
+# Cellular automata map v
+# Items - scrolls v and potions v, equipment - sword, equipment slots | And that involves calculations of attack and defense. v
 # Inventory v
 # Line of sight - to targeting v, description menu
 # Names of items after hovering over them <- reimplementation needed
@@ -788,26 +878,26 @@ if __name__ == '__main__':
 # Lantern and torches - use from the inventory - increasing fov
 # Optimise code - make functions more general, input processing etc... and then:
 # Noise AI - possible need for an A* algorithm
-# Making noise - either by shouting , tumbling over  or throwing
+# Making noise, noise mechanic - either by shouting , tumbling over  or throwing
 # Smoke - a place that blocks sight but not movement
+# Walking carefully - if player will hold shift, he will reduce the risk of making more noise
+# Monsters vision
 
-# Step 3: - Polishing and roguelike elements such as permadeath, levels etc.
+# Step 3: - Polishing and roguelike elements such as permadeath, levels as well as menu etc.
 # Spawning player randomly, in way that he does not spawn in walls
 # Spawning enemies randomly, in way that they do not spawn in walls
 # Help in game - "?"
 # Descending, loading maps, saving etc.
 # Magic, spellbooks and spell menu.
-# Endgame - [?]
+# Endgame - [?] and intro text
 # Main menu
-
 
 
 # TO FIX:
 # 1. Change FONT_SIZE to TILE_SIZE when necessary
 # When player dies, game doesn't acknowledge that
-
-
-
+# If there are several items on the ground, you have to pick up everything that is above from wanted item!
+# Getting images
 
 # Engine class?
 # That processess input, puts action into queues, returns states etc
@@ -815,6 +905,9 @@ if __name__ == '__main__':
 
 # Make the object that has the ai, have its own fov map - it's not good that it works in ways of "If you can see me, I can see you", because it subtracts the tactical possibility of hiding, while still seing other object etc.
 # Another problem that this creates, is that when I will be going to implement lighting, and objects that create light (augments the fov when they're in my fov), is simply that it augments the vision of enemies!
+# Noise represented by exclamation marks : [!!!!!!!!!!!!]
+# If monster is making noise detectable from a player, blit an quesiton mark in the position he did the noise for a couple of turns
+# Abhorrent creatures are pretty much blind - they can see only for one tile (other than themselves) - but they have excellent hearing
+# Mage will tell in the beginning that the casting unleashed creatures that have weak sight.
 
-
-# Maybe movable camera? although it is very hard
+# Maybe movable camera? although it is very hard it will certainly add more mystery and difficulty

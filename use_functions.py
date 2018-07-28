@@ -9,7 +9,7 @@ def heal(**kwargs):
 	heal_message = ""
 
 	if target.fighter.hp < target.fighter.max_hp:
-		heal_val = random.randint(1, heal_val)
+		heal_val = random.randint(heal_val / 2, heal_val)
 		target.fighter.hp += heal_val
 		if target.fighter.hp > target.fighter.max_hp: target.fighter.hp = target.fighter.max_hp
 
@@ -60,7 +60,13 @@ def equip(**kwargs):
 	item = kwargs.get('item')
 	UI = kwargs.get('UI')
 
-	target.fighter.equipment.append(item)
-	target.sended_messages.append("{0} wears {1}".format(target.name.capitalize(), item.name.title()))
+	if UI.add_item_to_equipment_slot(item):
 
-	return 'used'
+		target.fighter.equipment.append(item)
+		target.sended_messages.append("{0} wears {1}.".format(target.name.capitalize(), item.name.title()))
+		return 'used'
+	else:
+		target.sended_messages.append("You already have something in this slot, you have to")
+		target.sended_messages.append("remove it first.")
+		return 'cancelled'
+

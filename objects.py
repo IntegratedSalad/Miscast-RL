@@ -73,24 +73,49 @@ class Object(object):
 class Fighter(object):
 
 	# every being makes noise and can attack, have inventory
-	def __init__(self, max_hp, attack_stat, special_attack_fn=None, area_of_hearing=5):
-		self.max_hp = max_hp
-		self.hp = max_hp
-		self.attack_stat = attack_stat
+	def __init__(self, hp, initial_attack_stat, initial_defense_stat, special_attack_fn=None, area_of_hearing=5): # make it not that straightforward, add chances to stun, chances to miss etc.
+		self.starting_max_hp = hp
+		self.hp = hp
+		self.initial_attack_stat = initial_attack_stat
+		self.initial_defense_stat = initial_defense_stat
 		self.area_of_hearing = area_of_hearing
 		self.inventory = []
 		self.equipment = []
 
+	@property
+	def attack_stat(self):
+		final_val = 0
+		for piece in self.equipment:
+			final_val += piece.item.equipment.power_bonus
+		return final_val
+
+	@property
+	def max_hp(self):
+		bonus = 0
+		for piece in self.equipment:
+			bonus += piece.item.equipment.max_health_bonus
+		return self.starting_max_hp + bonus
+
+
+	@property
+	def defense_stat(self):
+		bonus = 0
+		for piece in self.equipment:
+			bonus += piece.item.equipment.defence_bonus
+		return self.initial_attack_stat + bonus
+
+
 	def attack(self, target):
 
-		attack_value = random.randint(0, self.attack_stat)
+		attack_value = random.randint(0, self.attack_stat) + random.randint(0, self.initial_attack_stat) # miss cannot be included in damage, if damage == 0 -> "but does no damage"
 
-		target.fighter.hp -= attack_value
+		attack_value = attack_value - (target.fighter.defense_stat / 2)
 
-		if attack_value != 0:
-			mess = "{0} attacks {1} and deals {2} dmg!".format(self.owner.name.capitalize(), target.name.capitalize(), attack_value)
+		if attack_value > 0:
+			target.fighter.hp -= attack_value
+			mess = "{0} attacks {1} and deals {2} dmg!".format(self.owner.name.title(), target.name.title(), attack_value)
 		else:
-			mess = "{0} attacks {1} and misses!".format(self.owner.name.capitalize(), target.name.capitalize())
+			mess = "{0} attacks {1} and misses!".format(self.owner.name.title(), target.name.title())
 
 		self.owner.sended_messages.append(mess)
 
@@ -102,14 +127,14 @@ class Fighter(object):
 		self.owner.img = images[6] # instead, use specific image for every character and corpse stats overall
 		self.owner.clear(self.owner.x, self.owner.y, _map)
 		field_of_view.fov_recalculate(fov_map, player_x, player_y, _map)
-		self.owner.sended_messages.append(self.owner.name.capitalize() + " is dead.")
+		self.owner.sended_messages.append(self.owner.name.title() + " is dead.")
 
 	def get(self, objects):
 		for obj in objects:
 			if obj.item is not None:
 				if self.owner.x == obj.x and self.owner.y == obj.y:
 					self.inventory.append(obj)
-					self.owner.sended_messages.append("{0} picks up {1}.".format(self.owner.name.capitalize(), obj.name))
+					self.owner.sended_messages.append("{0} picks up {1}.".format(self.owner.name.title(), obj.name.title()))
 					objects.remove(obj)
 					return obj
 
@@ -117,7 +142,7 @@ class Fighter(object):
 		obj.x = self.owner.x
 		obj.y = self.owner.y
 		self.inventory.remove(obj)
-		self.owner.sended_messages.append("{0} drops {1}.".format(self.owner.name.capitalize(), obj.name))
+		self.owner.sended_messages.append("{0} drops {1}.".format(self.owner.name.title(), obj.name))
 		objects.append(obj)
 
 
@@ -184,15 +209,19 @@ class Item(object):
 			if self.use_func(**kwargs) == 'used':
 				# remove from obj inventory
 				user.fighter.inventory.remove(self.owner)
+			else:
+				pass
 		else:
 			user.sended_messages.append("You cannot use that.")
 
 
 class Equipment(object):
 
-	def __init__(self, slot, power_bonus=0, defence_bonus=0):
+	def __init__(self, slot, power_bonus=0, defence_bonus=0, equipment_effect=None, max_health_bonus=0):
 		self.slot = slot
 		self.power_bonus = power_bonus
 		self.defence_bonus = defence_bonus
+		self.equipment_effect = equipment_effect
+		self.max_health_bonus = max_health_bonus
 
 
