@@ -19,7 +19,7 @@ class Object(object):
 		self.block_sight = block_sight
 		self.sended_messages = []
 		self.light_source = light_source # player is a light source
-		self.description =  ""
+		self.description =  '' # add multiple entries in dict
 
 		if self.fighter:
 			self.fighter.owner = self
@@ -65,7 +65,7 @@ class Object(object):
 		# add the possibility to change the color (it would need to be a list of message and the RGB value)
 		pass
 
-	def destroy(self):
+	def destroy(self): # make it that it removes obj from objects
 		self.item = None
 		self.img = None
 

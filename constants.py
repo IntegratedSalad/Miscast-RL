@@ -76,3 +76,9 @@ PLAYER_START_HP = 20
 WORM_MAX_HP = 3
 ABHORRENT_CREATURE_MAX_HP = 100
 # move here all the messages
+
+
+
+# DESCRIPIONS
+
+player_DESCRIPTION = "You were just a typical guy, living in house with your cats in a quiet village. You did not have any real ambitions, only dreams and hopes; many of which including that one girl. All has changed now and there is constant noise in your mind, images of The Mage, vivid descriptions of him talking to you not so long ago... 'I must be insane' you keep saying to yourself; but, still going forward."

@@ -7,6 +7,7 @@ import field_of_view
 import objects
 import utils
 import use_functions
+import textwrap
 from spritesheet import Spritesheet
 from map_utils import Tile
 from map_utils import CA_CaveFactory as CA_map
@@ -111,7 +112,7 @@ class Game(object):
 		font = pygame.font.Font("Px437_IBM_VGA8.ttf", constants.FONT_SIZE)
 		subscript_font = pygame.font.Font("Px437_IBM_VGA8.ttf", 8) # font will be used to tell how many of exact items are in the inventory
 
-		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.FULLSCREEN)
+		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))#, pygame.FULLSCREEN)
 
 		pygame.display.set_caption("RL")
 
@@ -119,6 +120,7 @@ class Game(object):
 
 		player_fighter_component = objects.Fighter(20, 3, 5)
 		player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component)
+		player.description = constants.player_DESCRIPTION
 
 		worm_AI = objects.SimpleAI()
 		worm_fighter_component = objects.Fighter(2, 2, 1)
@@ -171,7 +173,7 @@ class Game(object):
 		bronze_armor = objects.Object(player.x + 1, player.y + 1, self.images[16], 'bronze breastplate', item=bronze_armor_item_component)
 
 		crystal_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=50)
-		crystal_armor_item_component = objects.Item(use_func=use_functions.equip, name='bronze breastplate', equipment=crystal_armor_equipment_component, UI=self.ui)
+		crystal_armor_item_component = objects.Item(use_func=use_functions.equip, name='crystal breastplate', equipment=crystal_armor_equipment_component, UI=self.ui)
 		crystal_armor = objects.Object(player.x, player.y + 1, self.images[18], 'crystal breastplate', item=crystal_armor_item_component)
 
 		crown_equipment_component = objects.Equipment(slot='helmet', defence_bonus=2, max_health_bonus=100)
@@ -193,8 +195,6 @@ class Game(object):
 
 
 		self.objects.append(player)
-		#self.objects.append(hp_potion)
-		#self.objects.append(worm)
 		self.objects.append(abhorrent_creature)
 		self.objects.append(scroll_of_death)
 		self.objects.append(bronze_armor)
@@ -399,7 +399,9 @@ class Game(object):
 			#print int(clock.get_fps())
 
 			if player_action == 'look':
-				self.enter_look_mode("Look at what?")
+				target = self.enter_look_mode("Look at what?")
+				if target is not None:
+					self.ui.draw_info_window(target, scr)
 				# process request
 
 			self.state = self.check_for_player_death()
@@ -613,7 +615,7 @@ class Game(object):
 						x -= 1
 					if event.key == pygame.K_RETURN:
 						for obj in self.objects:
-							if (obj.x, obj.y) == (x, y) and obj.fighter:
+							if (obj.x, obj.y) == (x, y) and (obj.fighter or obj.item) and self.fov_map[obj.x][obj.y] == 1:
 								#print 'd'
 								return obj
 
@@ -794,12 +796,54 @@ class UI(object):
 				place[slot] = None
 				break
 
-	def draw_info_window(self, object):
+	def draw_info_window(self, obj, scr):
+		messages_IMAGES = [self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
 
 		# General description about any object
 		# If object.fighter - draw additional info
 
-		pass
+		first_paragraph = "It is {0}."
+		wrapped_description = textwrap.wrap(obj.description, 80)
+		#name_to_blit =  #center this below imaage
+
+		object_image = pygame.transform.scale(obj.img, (100, 100))
+
+		if obj.fighter:
+
+			attack_to_blit = font.render("Attack: " + str(obj.fighter.attack_stat + obj.fighter.initial_attack_stat), True, WHITE)
+			hp_to_blit = font.render("HP: " +str(obj.fighter.hp ), True, RED)
+
+
+		escaped = False
+
+		while not escaped:
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					pygame.quit()
+					exit(0)
+				if event.type == pygame.KEYDOWN:
+					escaped = True
+					break
+
+
+			scr.fill(BLACK)
+
+
+			self.draw_rect(0, 0, 42, 37, messages_IMAGES ,scr, title=obj.name.title())
+			y = 1
+			for line in wrapped_description:
+				line = font.render(line, True, WHITE)
+				scr.blit(line, (constants.FONT_SIZE, y * constants.FONT_SIZE))
+				y += 1
+
+			scr.blit(object_image, (25 * constants.TILE_SIZE, 12 * constants.TILE_SIZE))
+
+			if obj.fighter:
+				scr.blit(hp_to_blit, (10 *constants.TILE_SIZE, 15 * constants.TILE_SIZE))
+				scr.blit(attack_to_blit, (10 *constants.TILE_SIZE, 16 * constants.TILE_SIZE))
+
+			pygame.display.flip()
+
 
 	def add_item_to_equipment_slot(self, piece_of_equipment): # this is wrong, update only on request
 
@@ -836,7 +880,6 @@ class UI(object):
 		amulet = self.equipment_places['amulet']
 		accessory = self.equipment_places['accessory']
 
-
 		items = [helmet, breastplate, l_hand, r_hand, l_foot, r_foot, l_ring, r_ring, amulet, accessory]
 
 		for i in items:
@@ -869,7 +912,7 @@ if __name__ == '__main__':
 # Moving player v 
 # Basic monster v
 # Cellular automata map v
-# Items - scrolls v and potions v, equipment - sword, equipment slots | And that involves calculations of attack and defense. v
+# Items - scrolls v and potions v, equipment - sword, equipment slots v | And that involves calculations of attack and defense.
 # Inventory v
 # Line of sight - to targeting v, description menu
 # Names of items after hovering over them <- reimplementation needed
@@ -878,7 +921,7 @@ if __name__ == '__main__':
 # Lantern and torches - use from the inventory - increasing fov
 # Optimise code - make functions more general, input processing etc... and then:
 # Noise AI - possible need for an A* algorithm
-# Making noise, noise mechanic - either by shouting , tumbling over  or throwing
+# Making noise, noise mechanic - either by shouting , tumbling over or throwing
 # Smoke - a place that blocks sight but not movement
 # Walking carefully - if player will hold shift, he will reduce the risk of making more noise
 # Monsters vision
