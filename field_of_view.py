@@ -142,7 +142,7 @@ def is_in_fov(fov_map, obj):
 # RAD times, and checking for collision with wall every step.
  
 
-def cast_rays(px, py, fov_map, level_map, radius=6): # change that to x and y - so that anything can be a light source
+def cast_rays(px, py, fov_map, level_map, radius): # change that to x and y - so that anything can be a light source
 
     # but that light source must acivate only if it is in the player fov range
 
@@ -171,7 +171,7 @@ def cast_rays(px, py, fov_map, level_map, radius=6): # change that to x and y - 
             y += ay
      
 
-def fov_recalculate(fov_map, x, y, _map):
+def fov_recalculate(fov_map, x, y, _map, radius):
     reset_fov(fov_map)
-    cast_rays(x, y, fov_map, _map)
+    cast_rays(x, y, fov_map, _map, radius)
 

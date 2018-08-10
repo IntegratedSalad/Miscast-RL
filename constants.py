@@ -38,7 +38,7 @@ INVENTORY_HEIGHT = 17
 EQUIPMENT_AREA_START_X = 33
 EQUIPMENT_AREA_START_Y = 4
 EQUIPMENT_AREA_WIDTH = 6
-EQUIPMENT_AREA_HEIGHT = 6
+EQUIPMENT_AREA_HEIGHT = 7
 
 HP_START_X = 31
 HP_START_Y = 16
@@ -53,7 +53,7 @@ UI_BREASTPLATE_SLOT = (START_INFORMATION_BOX_X + (12 / 2)-1, START_INFORMATION_B
 UI_AMULET_SLOT = (START_INFORMATION_BOX_X + 7, START_INFORMATION_BOX_Y + 3) # AMULET
 UI_ACCESSORY_SLOT = (START_INFORMATION_BOX_X + 8, START_INFORMATION_BOX_Y + 10) # ACCESSORY
 UI_RIGHT_RING_SLOT = (START_INFORMATION_BOX_X + 7, START_INFORMATION_BOX_Y + 8) # RIGHT_RING
-UI_LEFT_RING_SLOT = (START_INFORMATION_BOX_X + 3, START_INFORMATION_BOX_Y + 8)# LEFT_RING
+UI_LEFT_RING_SLOT = (START_INFORMATION_BOX_X + 3, START_INFORMATION_BOX_Y + 8) # LEFT_RING
 
 # Enemies - map settings
 MAX_ENEMIES = 15
@@ -74,11 +74,12 @@ IMAGES_SCROLL_OF_DEATH = 14
 PLAYER_NAME = 'pysio'
 PLAYER_START_HP = 20
 WORM_MAX_HP = 3
-ABHORRENT_CREATURE_MAX_HP = 100
+ABHORRENT_CREATURE_MAX_HP = 100 # start hp
 # move here all the messages
 
 
 
 # DESCRIPIONS
 
-player_DESCRIPTION = "You were just a typical guy, living in house with your cats in a quiet village. You did not have any real ambitions, only dreams and hopes; many of which including that one girl. All has changed now and there is constant noise in your mind, images of The Mage, vivid descriptions of him talking to you not so long ago... 'I must be insane' you keep saying to yourself; but, still going forward."
+player_DESCRIPTION = "Before this horrid tragedy you were just a typical guy, living in house with your cats in a quiet village. You did not have any real ambitions, only dreams and hopes; many of which including that one girl. All has changed now and there is constant noise in your mind, images of The Mage, his scared wise eyes, vivid descriptions of him talking to you not so long ago... 'I must be insane' you keep saying to yourself; but, still going forward."
+abhorrent_creature_DESCRIPTION = "What is this?! It growls disturbingly, I'm so scared! It will be better if it doesn't hear me..."

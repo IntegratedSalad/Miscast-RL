@@ -7,7 +7,7 @@ import random
 
 class Object(object):
 
-	def __init__(self, x, y, img, name, blocks=False, block_sight=None, fighter=None, ai=None, item=None, light_source=None):
+	def __init__(self, x, y, img, name, blocks=False, block_sight=None, fighter=None, ai=None, item=None, initial_light_radius=0):
 		self.x = x
 		self.y = y
 		self.img = img
@@ -18,7 +18,7 @@ class Object(object):
 		self.item = item
 		self.block_sight = block_sight
 		self.sended_messages = []
-		self.light_source = light_source # player is a light source
+		self.initial_light_radius = initial_light_radius # player is a light source
 		self.description =  '' # add multiple entries in dict
 
 		if self.fighter:
@@ -83,6 +83,19 @@ class Fighter(object):
 		self.equipment = []
 
 	@property
+	def max_light_radius(self):
+
+		bonus_light = 0
+
+		for eq in self.equipment:
+			if eq.item.equipment.light_radius_bonus is not None:
+				if eq.item.equipment.activated:
+					# It activates here, the Equipment object has the values already "on"
+					bonus_light += eq.item.equipment.light_radius_bonus
+
+		return self.owner.initial_light_radius + bonus_light
+
+	@property
 	def attack_stat(self):
 		final_val = 0
 		for piece in self.equipment:
@@ -119,14 +132,14 @@ class Fighter(object):
 
 		self.owner.sended_messages.append(mess)
 
-	def kill(self, fov_map, player_x, player_y, _map, images):
+	def kill(self, fov_map, player_x, player_y, _map, images, player_light_radius):
 		self.owner.ai = None
 		self.owner.fighter = None
 		self.owner.block_sight = False
 		self.owner.blocks = False
 		self.owner.img = images[6] # instead, use specific image for every character and corpse stats overall
 		self.owner.clear(self.owner.x, self.owner.y, _map)
-		field_of_view.fov_recalculate(fov_map, player_x, player_y, _map)
+		field_of_view.fov_recalculate(fov_map, player_x, player_y, _map, radius=player_light_radius)
 		self.owner.sended_messages.append(self.owner.name.title() + " is dead.")
 
 	def get(self, objects):
@@ -139,11 +152,22 @@ class Fighter(object):
 					return obj
 
 	def drop(self, objects, obj):
+
+		for ob in objects:
+			if (ob.x, ob.y) == (self.owner.x, self.owner.y) and ob.name != constants.PLAYER_NAME:
+				self.owner.sended_messages.append("There is something already there.")
+				return
+
 		obj.x = self.owner.x
 		obj.y = self.owner.y
 		self.inventory.remove(obj)
-		self.owner.sended_messages.append("{0} drops {1}.".format(self.owner.name.title(), obj.name))
+		self.owner.sended_messages.append("{0} drops {1}.".format(self.owner.name.title(), obj.name.title()))
 		objects.append(obj)
+
+	def manage_equipment(self):
+		for eq in self.equipment:
+			if eq.item.equipment.activation_func is not None:
+				eq.item.equipment.wear_off(self.owner, eq.name)
 
 
 class SimpleAI(object):
@@ -217,11 +241,49 @@ class Item(object):
 
 class Equipment(object):
 
-	def __init__(self, slot, power_bonus=0, defence_bonus=0, equipment_effect=None, max_health_bonus=0):
+	def __init__(self, slot, power_bonus=0, defence_bonus=0, equipment_effect=None, max_health_bonus=0, light_radius_bonus=0, charges=0, activated=False, activation_func=None, deactivation_string="", wear_off_string="", **kwargs):
 		self.slot = slot
 		self.power_bonus = power_bonus
 		self.defence_bonus = defence_bonus
 		self.equipment_effect = equipment_effect
 		self.max_health_bonus = max_health_bonus
+		self.light_radius_bonus = light_radius_bonus
+		self.charges = charges
+		self.max_charges = charges
+		self.activated = activated
+		self.activation_func = activation_func
+		self.deactivation_string = deactivation_string # Must be a verb
+		self.wear_off_string = wear_off_string # Must be a verb too
+		self.kwargs = kwargs
+
+	def activate(self, **kwargs):
+		# this function only adds to the instance's attributes and manages activation func
+
+		just_activated = False
+
+		kwargs.update(self.kwargs)
+
+		user = kwargs.get('user')
+		eq_name = kwargs.get('eq_name')
+
+		if self.activation_func is not None and not self.activated and self.charges > 0:
+			if self.activation_func(**kwargs) == 'activated':
+				self.activated = True
+				just_activated = True
+
+		if self.activation_func is not None and self.activated and not just_activated:
+			self.activated = False
+			user.sended_messages.append("{0} {1} {2}".format(user.name.title(), self.deactivation_string, eq_name.title()))
+
+	def wear_off(self, user, eq_name):
+		if self.activated and self.charges > 0: self.charges -= 1
+
+		if self.charges <= 0: self.deactivate_from_wear(user, eq_name)
+
+
+	def deactivate_from_wear(self, user, eq_name):
+		self.activated = False
+		user.sended_messages.append("{0}'s {1} {2}.".format(user.name.title(), eq_name.title(), self.wear_off_string))
+
 
 

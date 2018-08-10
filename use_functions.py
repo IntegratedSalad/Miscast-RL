@@ -72,3 +72,11 @@ def equip(**kwargs):
 		target.sended_messages.append("remove it first.")
 		return 'cancelled'
 
+def light_lantern(**kwargs):
+
+	item = kwargs.get('item')
+	user = kwargs.get('user')
+
+	user.sended_messages.append("{0} lits Lantern.".format(user.name.title()))
+
+	return 'activated'

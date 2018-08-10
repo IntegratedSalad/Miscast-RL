@@ -38,8 +38,10 @@ class Game(object):
 				map_list.append(line)
 		return map_list
 
+
 	def gen_map(self):
 		pass
+
 
 	def get_images(self):
 
@@ -56,6 +58,7 @@ class Game(object):
 		medium_weapons_SPRITES = Spritesheet("tiles/MedWep.png")
 		helmets_SPRITES = Spritesheet("tiles/Hat.png")
 		long_weapons = Spritesheet("tiles/LongWep.png")
+		light_SPRITES = Spritesheet("tiles/Light.png")
 
 		player_IMG = characters_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		wall_IMG = walls_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE))
@@ -66,6 +69,7 @@ class Game(object):
 		corpse_IMG = corpses_SPRITES.image_at((4 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		inventory_slot_IMG = ui_two_SPRITES.image_at((8 * constants.TILE_SIZE, 10 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE))
 		great_steel_long_sword_IMG = long_weapons.image_at((0, constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+		lantern_IMG = light_SPRITES.image_at((3 * constants.TILE_SIZE, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 
 
 		hp_potion_IMG = potions_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
@@ -91,7 +95,7 @@ class Game(object):
 
 		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
 				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG,
-				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG, ultimate_hp_potion_IMG, great_steel_long_sword_IMG]
+				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG, ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG]
 
 	def set_map(self):
 
@@ -103,6 +107,7 @@ class Game(object):
 					final_map[x][y] = Tile(block_movement=False, block_sight=False)
 
 		return final_map
+
 
 	def init_pygame(self):
 		global scr, player, font
@@ -119,7 +124,7 @@ class Game(object):
 		self.images = self.get_images()
 
 		player_fighter_component = objects.Fighter(20, 3, 5)
-		player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component)
+		player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=2)
 		player.description = constants.player_DESCRIPTION
 
 		worm_AI = objects.SimpleAI()
@@ -142,6 +147,7 @@ class Game(object):
  		abhorrent_creature_AI = objects.SimpleAI()
  		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50, area_of_hearing=15)
 		abhorrent_creature = objects.Object(28, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI)
+		abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
 
 
 		for n in range(200):
@@ -157,7 +163,7 @@ class Game(object):
 		scroll_of_death = objects.Object(player.x + 2, player.y, self.images[constants.IMAGES_SCROLL_OF_DEATH], 'scroll of death', item=scroll_of_death_item_component)
 
 		ultimate_hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, heal_value=50)
-		ultimate_hp_potion = objects.Object(player.x + 3, player.y, self.images[21], 'ultimate hp potion', item=ultimate_hp_potion_item_component)
+		ultimate_hp_potion = objects.Object(player.x + 3, player.y, self.images[21], 'ultimate healing potion', item=ultimate_hp_potion_item_component)
 
 
 		for n in range(5):
@@ -182,7 +188,6 @@ class Game(object):
 
 
 
-
 		iron_sword_equipment_component = objects.Equipment(slot='right_hand', power_bonus=10) # for now fixed hand
 		iron_sword_item_component = objects.Item(use_func=use_functions.equip, name='iron sword', equipment=iron_sword_equipment_component, UI=self.ui)
 		iron_sword = objects.Object(player.x + 1, player.y - 1, self.images[19], 'iron sword', item=iron_sword_item_component)
@@ -191,6 +196,10 @@ class Game(object):
 		great_steel_long_sword = objects.Object(player.x + 1, player.y + 2, self.images[22], 'great steel long sword', item=great_steel_long_sword_item_component)
 
 
+
+		lantern_equipment_component = objects.Equipment(slot='accessory', charges=700 ,light_radius_bonus=5, activation_func=use_functions.light_lantern, deactivation_string="turns off", wear_off_string="run out of oil")
+		lantern_item_component = objects.Item(use_func=use_functions.equip, name='lantern', equipment=lantern_equipment_component, UI=self.ui)
+		lantern = objects.Object(player.x + 2, player.y+2, self.images[23], 'lantern', item=lantern_item_component)
 
 
 
@@ -203,9 +212,10 @@ class Game(object):
 		self.objects.append(crown)
 		self.objects.append(ultimate_hp_potion)
 		self.objects.append(great_steel_long_sword)
+		self.objects.append(lantern)
 
 		self.fov_map = field_of_view.set_fov(self.fov_map)
-		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map)
+		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map, radius=player.fighter.max_light_radius)
 
 	def handle_keys(self):
 
@@ -256,8 +266,8 @@ class Game(object):
 
 
 	def handle_mouse(self):
-		""" Returns 'took_turn' or 'idle' 
-			Action can be use or drop item
+		""" Returns 'took_turn' or 'idle' or 'hovering over'
+			Action can be use, drop or 'hovering over'
 		"""
 
 		m_x, m_y = pygame.mouse.get_pos()
@@ -281,7 +291,6 @@ class Game(object):
 					self.drop_item_by_mouse(action['item_to_drop'])
 					return 'took_turn'
 
-
 		if area_Equipment.collidepoint(m_x, m_y): 
 			action = self.handle_clicks(player.fighter.equipment)
 		
@@ -292,32 +301,30 @@ class Game(object):
 				# activate special effects, which I am not going to implement now
 				# but the one that i WILL, will be light
 				self.pause_menu()
+
+				# here decide to use 
+
+				equipment_piece = item.item.equipment
+
 				# use function of torch
-				player.sended_messages.append("You tap your {0} but nothing happens.".format(item.name.title()))
+				if equipment_piece.activation_func is not None:
+					equipment_piece.activate(user=player, eq_name=item.name)
+
+				else:
+					player.sended_messages.append("You press your {0} but nothing happens.".format(item.name.title()))
+
 				return 'took_turn'
 
 			else:
 				if action.has_key('item_to_drop'):
 
 					item = action['item_to_drop']
-
 					self.pause_menu()
 					self.remove_equipment_by_mouse(item)
 					player.sended_messages.append("You remove your {0}.".format(item.name.title()))
 					return 'took_turn'
-		return 'idle'
 
-		#if self.ui.inventory_rect.collidepoint(m_x, m_y):
-#
-#
-		#	for item in player.fighter.inventory:
-		#		to_check = pygame.Rect(item.x * constants.FONT_SIZE, item.y * constants.FONT_SIZE, constants.FONT_SIZE, constants.FONT_SIZE)
-#
-		#		if to_check.collidepoint(m_x, m_y):
-		#			to_blit = font.render(item.name, True, WHITE)
-		#			return ('blit', to_blit)
-#
-		#return 'idle'
+		return 'idle'
 
 	def handle_clicks(self, area):
 
@@ -342,8 +349,12 @@ class Game(object):
 				to_check = pygame.Rect(item.x * constants.FONT_SIZE, item.y * constants.FONT_SIZE, constants.FONT_SIZE, constants.FONT_SIZE)
 				# it creates rect that bounds item on the screen
 
+
 				if to_check.collidepoint(m_x, m_y):
-					return {'item_to_drop': item}
+					# here decide
+
+					action = self.ui.draw_info_window(item, scr, decide_to_drop=True)
+					return action
 
 		return {}
 
@@ -375,6 +386,7 @@ class Game(object):
 
 	def remove_equipment_by_mouse(self, item):
 		self.ui.remove_item_from_equipment_slot(item)
+		item.item.equipment.activated = False
 		player.fighter.equipment.remove(item)
 
 	def run(self):
@@ -425,18 +437,25 @@ class Game(object):
 					for obj in self.objects:
 	
 						self.check_for_death(obj)
+
+						if obj.fighter:
+							obj.fighter.manage_equipment()
 	
 						if obj.ai:
 							obj.clear_messages() # clear messages - any previous messages are not up to date
 							obj.ai.take_turn(_map=self.map, fov_map=self.fov_map, objects=self.objects, player=player)
 	
 						self.listen_for_messagess(obj)
+						for eq in player.fighter.equipment:
+							if eq.name == 'lantern': 
+								print eq.item.equipment.charges
+								break
 	
 				self.draw_all()
 
 				if mouse_action[0] == 'blit':
 					scr.blit(mouse_action[1], (0, (constants.START_MESSAGE_BOX_Y * constants.FONT_SIZE) - constants.FONT_SIZE))
-	
+
 				pygame.display.flip()
 
 		while self.state == 'game_over':
@@ -449,7 +468,7 @@ class Game(object):
 
 		if self.ui.current_view == 'game_screen' or 'inventory_screen':
 
-			field_of_view.fov_recalculate(self.fov_map, player.x, player.y, self.map)
+			field_of_view.fov_recalculate(self.fov_map, player.x, player.y, self.map, player.fighter.max_light_radius)
 
 			for x in range(0, 30):
 				for y in range(0, 30):
@@ -503,7 +522,7 @@ class Game(object):
 	def check_for_death(self, obj):
 		if obj.fighter is not None and obj.name != player.name:
 			if obj.fighter.hp <= 0:
-				obj.fighter.kill(self.fov_map, player.x, player.y, self.map, self.images)
+				obj.fighter.kill(self.fov_map, player.x, player.y, self.map, self.images, player.fighter.max_light_radius)
 
 	def check_for_player_death(self):
 		if player.fighter.hp <= 0:
@@ -564,7 +583,7 @@ class Game(object):
 
 		unpause = False
 
-		more_text = font.render("More... (hit enter)", True, WHITE)
+		more_text = font.render("More...", True, WHITE)
 
 		while not unpause:
 			for event in pygame.event.get():
@@ -572,10 +591,10 @@ class Game(object):
 					if event.key == pygame.K_RETURN:
 						unpause = True
 
-
 			self.draw_all()
 			scr.blit(more_text, (0, 0))
 			pygame.display.flip()
+
 
 	def enter_look_mode(self, title):
 
@@ -796,7 +815,7 @@ class UI(object):
 				place[slot] = None
 				break
 
-	def draw_info_window(self, obj, scr):
+	def draw_info_window(self, obj, scr, decide_to_drop=False):
 		messages_IMAGES = [self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
 
 		# General description about any object
@@ -811,7 +830,7 @@ class UI(object):
 		if obj.fighter:
 
 			attack_to_blit = font.render("Attack: " + str(obj.fighter.attack_stat + obj.fighter.initial_attack_stat), True, WHITE)
-			hp_to_blit = font.render("HP: " +str(obj.fighter.hp ), True, RED)
+			hp_to_blit = font.render("HP: " + str(obj.fighter.hp ), True, RED)
 
 
 		escaped = False
@@ -822,6 +841,15 @@ class UI(object):
 					pygame.quit()
 					exit(0)
 				if event.type == pygame.KEYDOWN:
+
+					if event.key == pygame.K_d and decide_to_drop:
+						scr.fill(BLACK)
+						return {'item_to_drop': obj}
+
+					else:
+						escaped =True
+						return {}
+
 					escaped = True
 					break
 
@@ -842,10 +870,15 @@ class UI(object):
 				scr.blit(hp_to_blit, (10 *constants.TILE_SIZE, 15 * constants.TILE_SIZE))
 				scr.blit(attack_to_blit, (10 *constants.TILE_SIZE, 16 * constants.TILE_SIZE))
 
+			if decide_to_drop:
+				drop = "(D) to drop or remove."
+				drop_to_blit = font.render(drop, True, WHITE)
+				scr.blit(drop_to_blit, ((constants.SCREEN_SIZE_WIDTH - 1 - len(drop) / 2) * constants.FONT_SIZE, (constants.SCREEN_SIZE_HEIGHT-2) * constants.FONT_SIZE))
+
 			pygame.display.flip()
 
 
-	def add_item_to_equipment_slot(self, piece_of_equipment): # this is wrong, update only on request
+	def add_item_to_equipment_slot(self, piece_of_equipment):
 
 		slot = piece_of_equipment.item.equipment.slot
 		if self.equipment_places[slot][1] is None:
@@ -914,17 +947,23 @@ if __name__ == '__main__':
 # Cellular automata map v
 # Items - scrolls v and potions v, equipment - sword, equipment slots v | And that involves calculations of attack and defense.
 # Inventory v
-# Line of sight - to targeting v, description menu
-# Names of items after hovering over them <- reimplementation needed
+# Line of sight - to targeting v, description menu v <- partially done, but i don't need to do this right now.
+# Examining - if you get the item from the ground, you cannot look at it! <- if right click -> drop in examine menu v
+# Using items and examining them via keyboard. - a new menu that is ordered by alphabet. -> not needed now
 
 # Step 2: - Core mechanics that will seperate my game from others
-# Lantern and torches - use from the inventory - increasing fov
+# Lantern and torches - increasing fov v refilling 
+# Objects that emit light.
 # Optimise code - make functions more general, input processing etc... and then:
 # Noise AI - possible need for an A* algorithm
-# Making noise, noise mechanic - either by shouting , tumbling over or throwing
+# Making noise, noise mechanic - either by shouting, tumbling over or throwing
 # Smoke - a place that blocks sight but not movement
 # Walking carefully - if player will hold shift, he will reduce the risk of making more noise
-# Monsters vision
+# If monster is making noise detectable to player, blit an quesiton mark in the position he did the noise for a couple of turns
+# Noise represented by exclamation marks : [!!!!!!!!!!!!]
+# Monster's vision.
+
+# After step 2 demo
 
 # Step 3: - Polishing and roguelike elements such as permadeath, levels as well as menu etc.
 # Spawning player randomly, in way that he does not spawn in walls
@@ -939,8 +978,12 @@ if __name__ == '__main__':
 # TO FIX:
 # 1. Change FONT_SIZE to TILE_SIZE when necessary
 # When player dies, game doesn't acknowledge that
-# If there are several items on the ground, you have to pick up everything that is above from wanted item!
-# Getting images
+# If there are several items on the ground, you have to pick up everything that is above from wanted item! <- Maybe allow only one item to be put in one spot? <- DONE, but I don't know if thats a good thing, maybe build a menu from which I can select what I want to get
+# Drawing order is off.
+# Getting images - one big array is very inconvenient.
+# Object data in dictionary
+# Multiple use functions
+# Messages are out of bound
 
 # Engine class?
 # That processess input, puts action into queues, returns states etc
@@ -948,8 +991,6 @@ if __name__ == '__main__':
 
 # Make the object that has the ai, have its own fov map - it's not good that it works in ways of "If you can see me, I can see you", because it subtracts the tactical possibility of hiding, while still seing other object etc.
 # Another problem that this creates, is that when I will be going to implement lighting, and objects that create light (augments the fov when they're in my fov), is simply that it augments the vision of enemies!
-# Noise represented by exclamation marks : [!!!!!!!!!!!!]
-# If monster is making noise detectable from a player, blit an quesiton mark in the position he did the noise for a couple of turns
 # Abhorrent creatures are pretty much blind - they can see only for one tile (other than themselves) - but they have excellent hearing
 # Mage will tell in the beginning that the casting unleashed creatures that have weak sight.
 
