@@ -225,6 +225,7 @@ class Item(object):
 		# it must be generic
 
 		user = kwargs.get('user')
+		ui = kwargs.get('UI')
 
 		kwargs.update(self.kwargs)
 
@@ -232,9 +233,11 @@ class Item(object):
 
 			if self.use_func(**kwargs) == 'used':
 				# remove from obj inventory
-				user.fighter.inventory.remove(self.owner)
+				if user.fighter.hp >0:
+					ui.remove_item_from_UI(self.owner.x, self.owner.y)
+					user.fighter.inventory.remove(self.owner)
 			else:
-				pass
+				return 'cancelled'
 		else:
 			user.sended_messages.append("You cannot use that.")
 

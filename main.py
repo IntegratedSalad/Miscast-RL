@@ -76,6 +76,7 @@ class Game(object):
 		ultimate_hp_potion_IMG = potions_SPRITES.image_at((1 * constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		scroll_of_death_IMG = scrolls_SPRITES.image_at((5 * constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		scroll_of_uncontrolled_teleportation_IMG = scrolls_SPRITES.image_at((4 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+		oil_IMG = potions_SPRITES.image_at((2 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 
 
 		iron_sword_IMG = medium_weapons_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
@@ -95,7 +96,7 @@ class Game(object):
 
 		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
 				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG,
-				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG, ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG]
+				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG, ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG]
 
 	def set_map(self):
 
@@ -165,6 +166,9 @@ class Game(object):
 		ultimate_hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, heal_value=50)
 		ultimate_hp_potion = objects.Object(player.x + 3, player.y, self.images[21], 'ultimate healing potion', item=ultimate_hp_potion_item_component)
 
+		oil_item_component = objects.Item(use_func=use_functions.refill_lantern, can_break=True, oil_value=500)
+		oil = objects.Object(player.x + 3, player.y + 2, self.images[24], 'oil', item=oil_item_component)
+
 
 		for n in range(5):
 			scroll_of_uncontrolled_teleportation_item_component = objects.Item(use_func=use_functions.uncontrolled_teleportation, map=self.map)
@@ -196,11 +200,9 @@ class Game(object):
 		great_steel_long_sword = objects.Object(player.x + 1, player.y + 2, self.images[22], 'great steel long sword', item=great_steel_long_sword_item_component)
 
 
-
 		lantern_equipment_component = objects.Equipment(slot='accessory', charges=700 ,light_radius_bonus=5, activation_func=use_functions.light_lantern, deactivation_string="turns off", wear_off_string="run out of oil")
 		lantern_item_component = objects.Item(use_func=use_functions.equip, name='lantern', equipment=lantern_equipment_component, UI=self.ui)
 		lantern = objects.Object(player.x + 2, player.y+2, self.images[23], 'lantern', item=lantern_item_component)
-
 
 
 		self.objects.append(player)
@@ -213,6 +215,7 @@ class Game(object):
 		self.objects.append(ultimate_hp_potion)
 		self.objects.append(great_steel_long_sword)
 		self.objects.append(lantern)
+		self.objects.append(oil)
 
 		self.fov_map = field_of_view.set_fov(self.fov_map)
 		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map, radius=player.fighter.max_light_radius)
@@ -364,7 +367,6 @@ class Game(object):
 		if item.item.targetable:
 			target = self.enter_look_mode("Target what?")
 			if target is not None:
-				self.ui.remove_item_from_UI(item.x, item.y)
 				item.item.use(target=target, user=player, item=item)
 				return 'took_turn'
 
@@ -372,8 +374,7 @@ class Game(object):
 				return 'idle'
 
 		else:
-			self.ui.remove_item_from_UI(item.x, item.y)
-			item.item.use(user=player, target=player, item=item)
+			item.item.use(user=player, target=player, item=item, UI=self.ui)
 			return 'took_turn'
 
 		return 'idle'
@@ -448,7 +449,6 @@ class Game(object):
 						self.listen_for_messagess(obj)
 						for eq in player.fighter.equipment:
 							if eq.name == 'lantern': 
-								print eq.item.equipment.charges
 								break
 	
 				self.draw_all()
@@ -635,7 +635,6 @@ class Game(object):
 					if event.key == pygame.K_RETURN:
 						for obj in self.objects:
 							if (obj.x, obj.y) == (x, y) and (obj.fighter or obj.item) and self.fov_map[obj.x][obj.y] == 1:
-								#print 'd'
 								return obj
 
 						return None
@@ -883,11 +882,11 @@ class UI(object):
 		slot = piece_of_equipment.item.equipment.slot
 		if self.equipment_places[slot][1] is None:
 			self.equipment_places[slot][1] = piece_of_equipment
+			self.remove_item_from_UI(piece_of_equipment.x, piece_of_equipment.y) # remove before moving (changing the coordinates) the item.
 			x = self.equipment_places[slot][0][0]
 			y = self.equipment_places[slot][0][1]
 			piece_of_equipment.x = x
 			piece_of_equipment.y = y
-			self.remove_item_from_UI(piece_of_equipment.x, piece_of_equipment.y)
 			return True
 		else:
 			return False
@@ -952,7 +951,7 @@ if __name__ == '__main__':
 # Using items and examining them via keyboard. - a new menu that is ordered by alphabet. -> not needed now
 
 # Step 2: - Core mechanics that will seperate my game from others
-# Lantern and torches - increasing fov v refilling 
+# Lantern and torches - increasing fov v refilling v - lantern is given at the beginning with one extra oil, and no lantern is spawned during the game
 # Objects that emit light.
 # Optimise code - make functions more general, input processing etc... and then:
 # Noise AI - possible need for an A* algorithm
@@ -966,8 +965,8 @@ if __name__ == '__main__':
 # After step 2 demo
 
 # Step 3: - Polishing and roguelike elements such as permadeath, levels as well as menu etc.
-# Spawning player randomly, in way that he does not spawn in walls
-# Spawning enemies randomly, in way that they do not spawn in walls
+# Spawning player randomly, in way which he does not spawn in walls
+# Spawning enemies randomly, in way which they do not spawn in walls
 # Help in game - "?"
 # Descending, loading maps, saving etc.
 # Magic, spellbooks and spell menu.

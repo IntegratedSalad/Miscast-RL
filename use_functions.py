@@ -80,3 +80,30 @@ def light_lantern(**kwargs):
 	user.sended_messages.append("{0} lits Lantern.".format(user.name.title()))
 
 	return 'activated'
+
+def refill_lantern(**kwargs):
+
+	player = kwargs.get('user')
+	oil_amount = kwargs.get('oil_value')
+
+	for obj in player.fighter.inventory:
+		if obj.name == 'lantern':
+			if obj.item.equipment.charges < 1500 and obj.item.equipment.charges + oil_amount < 1500:
+				obj.item.equipment.charges += oil_amount
+				player.sended_messages.append("{0} refills lantern.".format(player.name.title()))
+				return 'used'
+
+			if obj.item.equipment.charges + oil_amount > 1500:
+				player.sended_messages.append("This will overfill the lantern.")
+				return 'cancelled'
+
+			else:
+				player.sended_messages.append("Lantern is full.")
+				return 'cancelled'
+
+	# haven't found the lantern in inventory
+
+	player.sended_messages.append("There is no lantern in your inventory.")
+	return 'cancelled'
+
+
