@@ -115,10 +115,11 @@ class Game(object):
 
 		pygame.init()
 		pygame.font.init()
+		pygame.mouse.set_visible(True)
 		font = pygame.font.Font("Px437_IBM_VGA8.ttf", constants.FONT_SIZE)
 		subscript_font = pygame.font.Font("Px437_IBM_VGA8.ttf", 8) # font will be used to tell how many of exact items are in the inventory
 
-		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))#, pygame.FULLSCREEN)
+		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.FULLSCREEN)
 
 		pygame.display.set_caption("RL")
 
@@ -409,8 +410,6 @@ class Game(object):
 
 			# here will be the state, game or menu(description etc)
 
-			#print int(clock.get_fps())
-
 			if player_action == 'look':
 				target = self.enter_look_mode("Look at what?")
 				if target is not None:
@@ -447,15 +446,11 @@ class Game(object):
 							obj.ai.take_turn(_map=self.map, fov_map=self.fov_map, objects=self.objects, player=player)
 	
 						self.listen_for_messagess(obj)
-						for eq in player.fighter.equipment:
-							if eq.name == 'lantern': 
-								break
-	
+
 				self.draw_all()
 
-				if mouse_action[0] == 'blit':
-					scr.blit(mouse_action[1], (0, (constants.START_MESSAGE_BOX_Y * constants.FONT_SIZE) - constants.FONT_SIZE))
-
+				fps = font.render("FPS: {0}".format(int(clock.get_fps())), True, WHITE)
+				scr.blit(fps, (0, 0))
 				pygame.display.flip()
 
 		while self.state == 'game_over':
@@ -491,16 +486,16 @@ class Game(object):
 	def draw_objects(self):
 
 		for obj in self.objects:
+			if obj.fighter is None:
+				if field_of_view.is_in_fov(self.fov_map, obj):
+					obj.draw(scr)
 
-			if obj.block_sight:
-				self.map[obj.x][obj.y].block_sight = True
+		for obj in self.objects:
+			if obj.fighter is not None and obj.name != 'player':
+				if field_of_view.is_in_fov(self.fov_map, obj):
+					obj.draw(scr)
+			obj.clear_messages()
 
-			if field_of_view.is_in_fov(self.fov_map, obj) and obj.name != 'player':
-				# change the priority
-				obj.draw(scr)
-
-			# here, we will clear all their messages
-			obj.clear_messages() # clear messages - any previous messages are not up to date
 
 	def spawn_objects(self):
 
@@ -605,8 +600,6 @@ class Game(object):
 		x = player.x
 		y = player.y
 
-		line_to_blit = font.render("*", True, WHITE)
-
 		while action is None:
 
 			for event in pygame.event.get():
@@ -638,7 +631,6 @@ class Game(object):
 								return obj
 
 						return None
-						# here will be action
 
 			self.draw_all()
 			self.draw_bresenham_line(player.x, player.y, x, y)
@@ -788,7 +780,7 @@ class UI(object):
 			scr.blit(item.img, (_x, _y))
 
 	def add_item_to_UI(self, item):
-		# checks how many items there is, basicly it changes the item x and y so that it goes to the inventory area
+		# checks how many items there is, basically it changes the item x and y so that it goes to the inventory area
 
 		x = 1
 		y = 0
@@ -953,7 +945,7 @@ if __name__ == '__main__':
 # Step 2: - Core mechanics that will seperate my game from others
 # Lantern and torches - increasing fov v refilling v - lantern is given at the beginning with one extra oil, and no lantern is spawned during the game
 # Objects that emit light.
-# Optimise code - make functions more general, input processing etc... and then:
+# Optimise code - make functions more general, input processing etc... and then: (the most important change i could add from that point is event queue - decide what is done in what order)
 # Noise AI - possible need for an A* algorithm
 # Making noise, noise mechanic - either by shouting, tumbling over or throwing
 # Smoke - a place that blocks sight but not movement
@@ -978,7 +970,6 @@ if __name__ == '__main__':
 # 1. Change FONT_SIZE to TILE_SIZE when necessary
 # When player dies, game doesn't acknowledge that
 # If there are several items on the ground, you have to pick up everything that is above from wanted item! <- Maybe allow only one item to be put in one spot? <- DONE, but I don't know if thats a good thing, maybe build a menu from which I can select what I want to get
-# Drawing order is off.
 # Getting images - one big array is very inconvenient.
 # Object data in dictionary
 # Multiple use functions
@@ -994,3 +985,4 @@ if __name__ == '__main__':
 # Mage will tell in the beginning that the casting unleashed creatures that have weak sight.
 
 # Maybe movable camera? although it is very hard it will certainly add more mystery and difficulty
+# HP does not regenerate but you can throw rocks to kill enemies.
