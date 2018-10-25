@@ -71,8 +71,19 @@ IMAGES_POTION_HP = 13
 IMAGES_SCROLL_OF_DEATH = 14
 
 # Monster stats
+
+
 PLAYER_NAME = 'pysio'
 PLAYER_START_HP = 20
+
+player = {
+			'name': PLAYER_NAME,
+			'hp': 20
+
+	
+
+
+		}
 WORM_MAX_HP = 3
 ABHORRENT_CREATURE_MAX_HP = 100 # start hp
 # move here all the messages

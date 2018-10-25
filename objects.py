@@ -1,8 +1,10 @@
 from math import sqrt
 from map_utils import is_blocked
+import libtcodpy as libtcod
 import field_of_view
 import constants
 import random
+import utils
 
 
 class Object(object):
@@ -18,6 +20,8 @@ class Object(object):
 		self.item = item
 		self.block_sight = block_sight
 		self.sended_messages = []
+		self.noise_map = {}
+		self.noises = {'move': (9, 10, 3)} # LVL | RADIUS | FADE VALUE
 		self.initial_light_radius = initial_light_radius # player is a light source
 		self.description =  '' # add multiple entries in dict
 
@@ -35,6 +39,9 @@ class Object(object):
 			self.clear(self.x, self.y, _map)
 			self.x += dx
 			self.y += dy
+			noise = utils.make_noise_map(self.x, self.y, _map, self.noises['move'][1], self.noises['move'][2], self.noises['move'][0])
+			self.noise_map['noise_map'] = noise
+			self.noise_map['source'] = (self.x, self.y)
 		else:
 			for obj in objects:
 				if self.name != constants.PLAYER_NAME:
@@ -73,12 +80,11 @@ class Object(object):
 class Fighter(object):
 
 	# every being makes noise and can attack, have inventory
-	def __init__(self, hp, initial_attack_stat, initial_defense_stat, special_attack_fn=None, area_of_hearing=5): # make it not that straightforward, add chances to stun, chances to miss etc.
+	def __init__(self, hp, initial_attack_stat, initial_defense_stat, special_attack_fn=None): # make it not that straightforward, add chances to stun, chances to miss etc.
 		self.starting_max_hp = hp
 		self.hp = hp
 		self.initial_attack_stat = initial_attack_stat
 		self.initial_defense_stat = initial_defense_stat
-		self.area_of_hearing = area_of_hearing
 		self.inventory = []
 		self.equipment = []
 
@@ -173,10 +179,9 @@ class Fighter(object):
 class SimpleAI(object):
 
 	# simple ai does not make any noise nor listens for it
-
 	def take_turn(self, _map, fov_map, objects, player):
 
-		if fov_map[self.owner.x][self.owner.y] != 1 and self.owner.distance_to(player) >= self.owner.fighter.area_of_hearing: 
+		if fov_map[self.owner.x][self.owner.y] != 1: 
 			# walk randomly
 			rand_dir_x = random.randint(-1, 1)
 			rand_dir_y = random.randint(-1, 1)
@@ -206,8 +211,80 @@ class SimpleAI(object):
 
 class NoiseAI(object):
 
-	def __init__(self, hearing):
-		pass
+
+	def __init__(self, hearing=6, noise_map=None):
+		self.hearing = hearing
+		self.noise_map = noise_map
+		self.destination = None
+		self.chasing = False
+		self.attacking = False
+		# it will only listen for player
+		# it gives chase to the place that he heard the sound coming from
+
+	def take_turn(self, _map, fov_map, objects, player):
+
+
+		if self.noise_map is not None and not self.chasing:
+
+			noise_map = self.noise_map.get('noise_map')
+			source = self.noise_map.get('source')
+
+			if noise_map is not None:
+
+				if (self.owner.x, self.owner.y) in noise_map.keys():
+					if self.hearing <= noise_map[(self.owner.x, self.owner.y)]:
+						self.destination = source
+						self.chasing = True
+						print self.owner.name, "gives chase!"
+
+		if self.chasing:
+			# A* kicks in
+			self.move_astar(_map, fov_map, objects, player)
+
+		if self.attacking:
+			# it has to attack only if it sees the player
+			self.move_to(_map, fov_map, objects, player)
+
+	def move_astar(self, _map, fov_map, objects, player):
+
+		fov = libtcod.map_new(constants.MAP_WIDTH, constants.MAP_HEIGHT)
+
+		for y1 in range(constants.MAP_WIDTH):
+			for x1 in range(constants.MAP_HEIGHT):
+				libtcod.map_set_properties(fov, x1, y1, not _map[x1][y1].block_sight, not _map[x1][y1].block_movement)
+
+		for obj in objects:
+			if obj.blocks and obj != self.owner and obj != player: # obj.x, obj.y != source
+				libtcod.map_set_properties(fov, obj.x, obj.y, True, False)
+
+		monster_path = libtcod.path_new_using_map(fov, 1.41)
+		libtcod.path_compute(monster_path, self.owner.x, self.owner.y, player.x, player.y)
+
+		if not libtcod.path_is_empty(monster_path) and libtcod.path_size(monster_path) < 25:
+			x, y = libtcod.path_walk(monster_path, True)
+
+
+			if self.owner.distance_to(player) > 2:
+				if x or y:
+					self.owner.x = x
+					self.owner.y = y
+			else:
+				self.chasing = False
+				self.attacking = True
+				self.move_to(_map, fov_map, objects, player)
+	
+	def move_to(self, _map, fov_map, objects, player):
+		distance = self.owner.distance_to(player)
+
+		if distance != 0:
+			
+			dx = player.x - self.owner.x
+			dy = player.y - self.owner.y
+
+			dx = int(round(dx / distance))
+			dy = int(round(dy / distance))
+
+			self.owner.move(dx, dy, _map, fov_map, objects)				
 
 
 class Item(object):
@@ -221,7 +298,7 @@ class Item(object):
 		if self.equipment:
 			self.equipment.owner = self
 
-	def use(self, **kwargs):
+	def use(self, **kwargs): # throwing makes noise within throw function
 		# it must be generic
 
 		user = kwargs.get('user')
@@ -233,9 +310,10 @@ class Item(object):
 
 			if self.use_func(**kwargs) == 'used':
 				# remove from obj inventory
-				if user.fighter.hp >0:
+				if user.fighter.hp > 0:
 					ui.remove_item_from_UI(self.owner.x, self.owner.y)
 					user.fighter.inventory.remove(self.owner)
+					# add noise value to the effect if item
 			else:
 				return 'cancelled'
 		else:

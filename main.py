@@ -126,6 +126,7 @@ class Game(object):
 		self.images = self.get_images()
 
 		player_fighter_component = objects.Fighter(20, 3, 5)
+		# sprites in dict too
 		player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=2)
 		player.description = constants.player_DESCRIPTION
 
@@ -140,15 +141,16 @@ class Game(object):
 			if self.map[mon_x][mon_y].block_sight or (mon_x, mon_y) == (player.x, player.y):  
 				continue
 			else:
-				worm_AI = objects.SimpleAI()
-				worm_fighter_component = objects.Fighter(2, 2, 1)
-				worm = objects.Object(mon_x, mon_y, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component) # 2 7
+				pass
+				#worm_AI = objects.SimpleAI()
+				#worm_fighter_component = objects.Fighter(2, 2, 1)
+				#worm = objects.Object(mon_x, mon_y, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component) # 2 7
 				#worm = objects.Object(2, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component) # 2 7
-				self.objects.append(worm)
+				#self.objects.append(worm)
  
- 		abhorrent_creature_AI = objects.SimpleAI()
- 		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50, area_of_hearing=15)
-		abhorrent_creature = objects.Object(28, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI)
+ 		abhorrent_creature_AI = objects.NoiseAI()
+ 		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
+		abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI)
 		abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
 
 
@@ -201,7 +203,7 @@ class Game(object):
 		great_steel_long_sword = objects.Object(player.x + 1, player.y + 2, self.images[22], 'great steel long sword', item=great_steel_long_sword_item_component)
 
 
-		lantern_equipment_component = objects.Equipment(slot='accessory', charges=700 ,light_radius_bonus=5, activation_func=use_functions.light_lantern, deactivation_string="turns off", wear_off_string="run out of oil")
+		lantern_equipment_component = objects.Equipment(slot='accessory', charges=700 ,light_radius_bonus=10, activation_func=use_functions.light_lantern, deactivation_string="turns off", wear_off_string="run out of oil")
 		lantern_item_component = objects.Item(use_func=use_functions.equip, name='lantern', equipment=lantern_equipment_component, UI=self.ui)
 		lantern = objects.Object(player.x + 2, player.y+2, self.images[23], 'lantern', item=lantern_item_component)
 
@@ -399,59 +401,65 @@ class Game(object):
 		player.sended_messages.append("You descend into your own basement.")
 		self.listen_for_messagess(player)
 
+		turn = 'player_turn'
+
 		while self.state == 'playing':
 			clock.tick(60)
-			player_action = self.handle_keys()
-			mouse_action = self.handle_mouse()
-
-			# process input - make so, that the keys are universal for all the windows, but they do something different for all of them
-			
 			scr.fill(BLACK)
+			screen_to_draw = 'game_screen'
 
-			# here will be the state, game or menu(description etc)
-
-			if player_action == 'look':
-				target = self.enter_look_mode("Look at what?")
-				if target is not None:
-					self.ui.draw_info_window(target, scr)
-				# process request
-
-			self.state = self.check_for_player_death()
 			if self.state == 'playing':
 
-	
-				# Process input - queue player requests.
-				# If player makes action that takes round - allow computer to make it
-				# Blit everything
-	
-				#progress = self.process_player_request(player_action, mouse_action)
-				# decides to move or not
-	
-				# if progress:
-	
-	
-				if player_action == 'move' or mouse_action == 'took_turn':
-	
-					screen_to_draw = 'game_screen'
-	
+				if turn == 'player_turn':
+
+					player_action = self.handle_keys()
+					mouse_action = self.handle_mouse()
+
+					if player_action == 'look':
+						target = self.enter_look_mode("Look at what?")
+						if target is not None:
+							self.ui.draw_info_window(target, scr)
+
+					self.state = self.check_for_player_death()
+
+					if player_action == 'move' or mouse_action == 'took_turn':
+
+						x = player.noise_map.get('noise_map')
+
+						if x is not None:
+							for key in x.keys():
+								_x = key[0] * constants.TILE_SIZE
+								_y = key[1] * constants.TILE_SIZE
+								scr.blit(self.images[0], (_x, _y))
+							pygame.display.flip()
+
+						self.listen_for_messagess(player)
+						turn = 'monster_turn'
+
+				if turn == 'monster_turn':
 					for obj in self.objects:
-	
+
 						self.check_for_death(obj)
 
 						if obj.fighter:
 							obj.fighter.manage_equipment()
-	
+		
 						if obj.ai:
+							obj.ai.noise_map = player.noise_map
+
 							obj.clear_messages() # clear messages - any previous messages are not up to date
 							obj.ai.take_turn(_map=self.map, fov_map=self.fov_map, objects=self.objects, player=player)
-	
-						self.listen_for_messagess(obj)
+		
+							self.listen_for_messagess(obj)
+
+					player.noise_map = {}
+					turn = 'player_turn'
 
 				self.draw_all()
 
-				fps = font.render("FPS: {0}".format(int(clock.get_fps())), True, WHITE)
-				scr.blit(fps, (0, 0))
-				pygame.display.flip()
+			fps = font.render("FPS: {0}".format(int(clock.get_fps())), False, WHITE)
+			scr.blit(fps, (0, 0))
+			pygame.display.flip()
 
 		while self.state == 'game_over':
 			self.show_game_over_demo()
@@ -569,16 +577,16 @@ class Game(object):
 		_y = y * constants.FONT_SIZE
 
 		for message in reversed(self.messages): # last ones are the latest
-			message_to_blit = font.render(message, True, WHITE)
+			message_to_blit = font.render(message, False, WHITE)
 			scr.blit(message_to_blit, (16, _y))
 			_y -= constants.FONT_SIZE
 
 	def pause_menu(self):
-		# used to prevent player from activating bunch of items at once
+		# to prevent player from activating bunch of items at once
 
 		unpause = False
 
-		more_text = font.render("More...", True, WHITE)
+		more_text = font.render("More...", False, WHITE)
 
 		while not unpause:
 			for event in pygame.event.get():
@@ -595,7 +603,7 @@ class Game(object):
 
 		action = None
 
-		look_text = font.render(title, True, WHITE)
+		look_text = font.render(title, False, WHITE)
 
 		x = player.x
 		y = player.y
@@ -641,7 +649,7 @@ class Game(object):
 	def draw_bresenham_line(self, x0, y0, x1, y1):
 	    "Bresenham's line algorithm - taken from: https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#Python"
 	
-	    line_img = font.render("*", True, WHITE)
+	    line_img = font.render("*", False, WHITE)
 	
 	    dx = abs(x1 - x0)
 	    dy = abs(y1 - y0)
@@ -737,7 +745,7 @@ class UI(object):
 			else:
 				title_even = False
 
-			text_to_blit = font.render(title, True, WHITE)
+			text_to_blit = font.render(title, False, WHITE)
 
 			x = (start_x + (width / 2)  - (title_len / 2)) * constants.FONT_SIZE
 			y = start_y * constants.TILE_SIZE + 4
@@ -767,7 +775,7 @@ class UI(object):
 		self.draw_inventory(scr)
 		self.draw_equipment(scr)
 
-		hp_to_blit = font.render("HP: {0} / {1}".format(player.fighter.hp, player.fighter.max_hp), True, RED)
+		hp_to_blit = font.render("HP: {0} / {1}".format(player.fighter.hp, player.fighter.max_hp), False, RED)
 
 		scr.blit(hp_to_blit, (constants.HP_START_X * constants.TILE_SIZE, constants.HP_START_Y))
 
@@ -820,8 +828,8 @@ class UI(object):
 
 		if obj.fighter:
 
-			attack_to_blit = font.render("Attack: " + str(obj.fighter.attack_stat + obj.fighter.initial_attack_stat), True, WHITE)
-			hp_to_blit = font.render("HP: " + str(obj.fighter.hp ), True, RED)
+			attack_to_blit = font.render("Attack: " + str(obj.fighter.attack_stat + obj.fighter.initial_attack_stat), False, WHITE)
+			hp_to_blit = font.render("HP: " + str(obj.fighter.hp ), False, RED)
 
 
 		escaped = False
@@ -851,7 +859,7 @@ class UI(object):
 			self.draw_rect(0, 0, 42, 37, messages_IMAGES ,scr, title=obj.name.title())
 			y = 1
 			for line in wrapped_description:
-				line = font.render(line, True, WHITE)
+				line = font.render(line, False, WHITE)
 				scr.blit(line, (constants.FONT_SIZE, y * constants.FONT_SIZE))
 				y += 1
 
@@ -863,7 +871,7 @@ class UI(object):
 
 			if decide_to_drop:
 				drop = "(D) to drop or remove."
-				drop_to_blit = font.render(drop, True, WHITE)
+				drop_to_blit = font.render(drop, False, WHITE)
 				scr.blit(drop_to_blit, ((constants.SCREEN_SIZE_WIDTH - 1 - len(drop) / 2) * constants.FONT_SIZE, (constants.SCREEN_SIZE_HEIGHT-2) * constants.FONT_SIZE))
 
 			pygame.display.flip()
@@ -951,8 +959,9 @@ if __name__ == '__main__':
 # Smoke - a place that blocks sight but not movement
 # Walking carefully - if player will hold shift, he will reduce the risk of making more noise
 # If monster is making noise detectable to player, blit an quesiton mark in the position he did the noise for a couple of turns
-# Noise represented by exclamation marks : [!!!!!!!!!!!!]
+# Noise represented by exclamation marks : [!!!!!!!!!!!!] (Range, and with colors: level) (Level indicates how piercing through the walls it is, how many walls can it pierce till it fades)
 # Monster's vision.
+# Below 25 level of depth, abhorrent creatures will spawn and it will be necessary to crouch and sneak.
 
 # After step 2 demo
 
@@ -973,7 +982,7 @@ if __name__ == '__main__':
 # Getting images - one big array is very inconvenient.
 # Object data in dictionary
 # Multiple use functions
-# Messages are out of bound
+# Messages are out of bound - make text wrapping in messages field.
 
 # Engine class?
 # That processess input, puts action into queues, returns states etc
@@ -984,5 +993,17 @@ if __name__ == '__main__':
 # Abhorrent creatures are pretty much blind - they can see only for one tile (other than themselves) - but they have excellent hearing
 # Mage will tell in the beginning that the casting unleashed creatures that have weak sight.
 
-# Maybe movable camera? although it is very hard it will certainly add more mystery and difficulty
+# Maybe movable camera? although it is very hard it will certainly add more mystery and difficulty.
 # HP does not regenerate but you can throw rocks to kill enemies.
+
+
+# Noise AI (Mechanic: the lower (lvl) the noise detected, the better hearing):
+# 1. Monster has it's own fov map and Level Of Hearing, that is: WHICH LEVEL of noise monster can detect. (If it has good hearing, he can detect low levels of noise)
+# 2. The object that emits sound has: Max level of sound that can be created and range of that sound. 
+# 3. Each turn, surrounding can make noise and it uses the same algorithm that fov does.
+# 4. Each noise type has to have an indicator, that shows how quickly the noise fades.
+# 5. If player makes noise that monster can hear, he gets message "something growls!" (Player gets a notification only if he hears the sound)
+# 6. Sneaking is a good option, but it hurts your ankles. (If used too much, player will scream)
+# 7. Sound is made: "fov" of sound traverses with it's own properties, hitting walls, fades etc.: Hits monster that can hear it: Monster goes to sound source.
+
+# Ok, now we have to create another creature on which we will test this.
