@@ -1,0 +1,4 @@
+vi-keys 0
+
+
+# if vi-keys are active (1), using items is assigned to 'a'.

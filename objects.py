@@ -9,7 +9,7 @@ import utils
 
 class Object(object):
 
-	def __init__(self, x, y, img, name, blocks=False, block_sight=None, fighter=None, ai=None, item=None, initial_light_radius=0):
+	def __init__(self, x, y, img, name, blocks=False, block_sight=None, fighter=None, ai=None, item=None, initial_light_radius=0, initial_fov=0):
 		self.x = x
 		self.y = y
 		self.img = img
@@ -21,11 +21,14 @@ class Object(object):
 		self.block_sight = block_sight
 		self.sended_messages = []
 		self.noise_map = {}
-		self.noises = {'move': (9, 10, 3)} # LVL | RADIUS | FADE VALUE
-		self.initial_light_radius = initial_light_radius # player is a light source
+		self.noises = {'move': (4, 4, 1), 'crouch': (2, 2, 1)} # LVL | RADIUS | FADE VALUE
+		self.initial_light_radius = initial_light_radius # player is a light source variable for objects
+		self.initial_fov = initial_fov # for monsters
 		self.description =  '' # add multiple entries in dict
 
 		if self.fighter:
+			self.fov_map = []
+			self.fov_map = field_of_view.set_fov(self.fov_map)
 			self.fighter.owner = self
 
 		if self.ai:
@@ -39,9 +42,14 @@ class Object(object):
 			self.clear(self.x, self.y, _map)
 			self.x += dx
 			self.y += dy
-			noise = utils.make_noise_map(self.x, self.y, _map, self.noises['move'][1], self.noises['move'][2], self.noises['move'][0])
-			self.noise_map['noise_map'] = noise
-			self.noise_map['source'] = (self.x, self.y)
+			if not self.fighter.sneaking:
+				noise = utils.make_noise_map(self.x, self.y, _map, self.noises['move'][1], self.noises['move'][2], self.noises['move'][0])
+				self.noise_map['noise_map'] = noise
+				self.noise_map['source'] = (self.x, self.y)
+			else:
+				noise = utils.make_noise_map(self.x, self.y, _map, self.noises['crouch'][1], self.noises['crouch'][2], self.noises['crouch'][0])
+				self.noise_map['noise_map'] = noise
+				self.noise_map['source'] = (self.x, self.y)
 		else:
 			for obj in objects:
 				if self.name != constants.PLAYER_NAME:
@@ -87,6 +95,8 @@ class Fighter(object):
 		self.initial_defense_stat = initial_defense_stat
 		self.inventory = []
 		self.equipment = []
+		self.sneaking = False
+		self.knees = 10 # knee health
 
 	@property
 	def max_light_radius(self):
@@ -170,10 +180,18 @@ class Fighter(object):
 		self.owner.sended_messages.append("{0} drops {1}.".format(self.owner.name.title(), obj.name.title()))
 		objects.append(obj)
 
-	def manage_equipment(self):
+	def manage_equipment(self): # change to manage fighter, so that it deals with sneaking too
 		for eq in self.equipment:
 			if eq.item.equipment.activation_func is not None:
 				eq.item.equipment.wear_off(self.owner, eq.name)
+
+	def sneak(self):
+		if not self.sneaking:
+			self.sneaking = True
+			self.owner.sended_messages.append("You crouch.")
+		else:
+			self.sneaking = False
+			self.owner.sended_messages.append("You stand up.")
 
 
 class SimpleAI(object):
@@ -181,13 +199,18 @@ class SimpleAI(object):
 	# simple ai does not make any noise nor listens for it
 	def take_turn(self, _map, fov_map, objects, player):
 
-		if fov_map[self.owner.x][self.owner.y] != 1: 
+		field_of_view.cast_rays(self.owner.x, self.owner.y, fov_map, _map, self.owner.initial_fov)
+
+		if fov_map[player.x][player.y] != 1: 
 			# walk randomly
 			rand_dir_x = random.randint(-1, 1)
 			rand_dir_y = random.randint(-1, 1)
 
 			if rand_dir_x and rand_dir_y != 0:
 				self.owner.move(rand_dir_x, rand_dir_y, _map, fov_map, objects)
+
+			field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
+
 		else:
 			# get to the player
 
@@ -202,6 +225,7 @@ class SimpleAI(object):
 				dy = int(round(dy / distance))
 
 				self.owner.move(dx, dy, _map, fov_map, objects)
+				field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
 
 
 	def target_enemy():
@@ -212,7 +236,7 @@ class SimpleAI(object):
 class NoiseAI(object):
 
 
-	def __init__(self, hearing=6, noise_map=None):
+	def __init__(self, hearing, noise_map=None):
 		self.hearing = hearing
 		self.noise_map = noise_map
 		self.destination = None
@@ -222,7 +246,6 @@ class NoiseAI(object):
 		# it gives chase to the place that he heard the sound coming from
 
 	def take_turn(self, _map, fov_map, objects, player):
-
 
 		if self.noise_map is not None and not self.chasing:
 
@@ -235,7 +258,7 @@ class NoiseAI(object):
 					if self.hearing <= noise_map[(self.owner.x, self.owner.y)]:
 						self.destination = source
 						self.chasing = True
-						print self.owner.name, "gives chase!"
+						print self.owner.name, "gives chase!" # Add here sound of growling and check if player hears it
 
 		if self.chasing:
 			# A* kicks in
@@ -244,6 +267,25 @@ class NoiseAI(object):
 		if self.attacking:
 			# it has to attack only if it sees the player
 			self.move_to(_map, fov_map, objects, player)
+
+		if self.destination is None:
+			# use eyes
+
+			field_of_view.cast_rays(self.owner.x, self.owner.y, fov_map, _map, self.owner.initial_fov)
+
+			if fov_map[player.x][player.y] != 1: 
+			# walk randomly
+				rand_dir_x = random.randint(-1, 1)
+				rand_dir_y = random.randint(-1, 1)
+
+				if rand_dir_x and rand_dir_y != 0:
+					self.owner.move(rand_dir_x, rand_dir_y, _map, fov_map, objects)
+
+				field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
+			else:
+				self.move_to(_map, fov_map, objects, player)
+				field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
+
 
 	def move_astar(self, _map, fov_map, objects, player):
 

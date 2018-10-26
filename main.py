@@ -15,6 +15,8 @@ from map_utils import CA_CaveFactory as CA_map
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 RED = (219, 0, 0)
+GREEN = (3, 172, 37)
+PALE = (172, 112, 100)
 
 class Game(object):
 
@@ -70,6 +72,7 @@ class Game(object):
 		inventory_slot_IMG = ui_two_SPRITES.image_at((8 * constants.TILE_SIZE, 10 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE))
 		great_steel_long_sword_IMG = long_weapons.image_at((0, constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		lantern_IMG = light_SPRITES.image_at((3 * constants.TILE_SIZE, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+		goblin_IMG = characters_SPRITES.image_at((0 * constants.TILE_SIZE, 12 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 
 
 		hp_potion_IMG = potions_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
@@ -96,7 +99,7 @@ class Game(object):
 
 		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
 				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG,
-				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG, ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG]
+				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG, ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG, goblin_IMG]
 
 	def set_map(self):
 
@@ -117,7 +120,7 @@ class Game(object):
 		pygame.font.init()
 		pygame.mouse.set_visible(True)
 		font = pygame.font.Font("Px437_IBM_VGA8.ttf", constants.FONT_SIZE)
-		subscript_font = pygame.font.Font("Px437_IBM_VGA8.ttf", 8) # font will be used to tell how many of exact items are in the inventory
+		subscript_font = pygame.font.Font("Px437_IBM_VGA8.ttf", 8) # font will be used to tell how many of exact items are in the inventory | NOT USED
 
 		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.FULLSCREEN)
 
@@ -148,10 +151,14 @@ class Game(object):
 				#worm = objects.Object(2, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component) # 2 7
 				#self.objects.append(worm)
  
- 		abhorrent_creature_AI = objects.NoiseAI()
+ 		abhorrent_creature_AI = objects.NoiseAI(hearing=6)
  		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
-		abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI)
+		abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI, initial_fov=3)
 		abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
+
+		goblin_AI = objects.NoiseAI(hearing=4)
+		goblin_fighter_component = objects.Fighter(25, 10, 10)
+		goblin = objects.Object(24, 11, self.images[25], 'Goblin', blocks=True, block_sight=True, fighter=goblin_fighter_component, ai=goblin_AI, initial_fov=4)
 
 
 		for n in range(200):
@@ -219,6 +226,7 @@ class Game(object):
 		self.objects.append(great_steel_long_sword)
 		self.objects.append(lantern)
 		self.objects.append(oil)
+		self.objects.append(goblin)
 
 		self.fov_map = field_of_view.set_fov(self.fov_map)
 		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map, radius=player.fighter.max_light_radius)
@@ -238,33 +246,38 @@ class Game(object):
 					exit(0)
 				if event.key == pygame.K_l:
 					player.move(1, 0, self.map, self.fov_map, self.objects)
-					return 'move'
+					return 'took_turn'
 				if event.key == pygame.K_h:
 					player.move(-1, 0, self.map, self.fov_map, self.objects)
-					return 'move'
+					return 'took_turn'
 				if event.key == pygame.K_k:
 					player.move(0, -1, self.map, self.fov_map, self.objects)
-					return 'move'
+					return 'took_turn'
 				if event.key == pygame.K_j:
 					player.move(0, 1, self.map, self.fov_map, self.objects)
-					return 'move'
+					return 'took_turn'
 				if event.key == pygame.K_y:
 					player.move(-1, -1, self.map, self.fov_map, self.objects)
-					return 'move'
+					return 'took_turn'
 				if event.key == pygame.K_u:
 					player.move(1, -1, self.map, self.fov_map, self.objects)
-					return 'move'
+					return 'took_turn'
 				if event.key == pygame.K_n:
 					player.move(1, 1, self.map, self.fov_map, self.objects)
-					return 'move'
+					return 'took_turn'
 				if event.key == pygame.K_b:
 					player.move(-1, 1, self.map, self.fov_map, self.objects)
-					return 'move'
+					return 'took_turn'
+
+				if event.key == pygame.K_c:
+					player.fighter.sneak()
+					return 'took_turn'
+
 				if event.key == pygame.K_g:
 					item = player.fighter.get(self.objects)
 					if item is not None:
 						self.ui.add_item_to_UI(item)
-						return 'move'
+						return 'took_turn'
 				if event.key == pygame.K_SEMICOLON:
 					return 'look'
 
@@ -422,7 +435,8 @@ class Game(object):
 
 					self.state = self.check_for_player_death()
 
-					if player_action == 'move' or mouse_action == 'took_turn':
+					if player_action == 'took_turn' or mouse_action == 'took_turn':
+						print player.x, player.y
 
 						x = player.noise_map.get('noise_map')
 
@@ -448,7 +462,7 @@ class Game(object):
 							obj.ai.noise_map = player.noise_map
 
 							obj.clear_messages() # clear messages - any previous messages are not up to date
-							obj.ai.take_turn(_map=self.map, fov_map=self.fov_map, objects=self.objects, player=player)
+							obj.ai.take_turn(_map=self.map, fov_map=obj.fov_map, objects=self.objects, player=player)
 		
 							self.listen_for_messagess(obj)
 
@@ -905,7 +919,7 @@ class UI(object):
 		breastplate = self.equipment_places['breastplate']
 		l_hand = self.equipment_places['left_hand']
 		r_hand = self.equipment_places['right_hand']
-		l_foot =self.equipment_places['left_foot']
+		l_foot = self.equipment_places['left_foot']
 		r_foot = self.equipment_places['right_foot']
 		l_ring = self.equipment_places['left_ring']
 		r_ring = self.equipment_places['right_ring']
@@ -923,6 +937,29 @@ class UI(object):
 				x = piece[1].x * constants.TILE_SIZE
 				y = piece[1].y * constants.TILE_SIZE
 				scr.blit(image_to_blit, (x, y))
+
+		self.draw_infos() # such as sneaking and sound
+
+	def draw_infos(self):
+
+		# knees
+
+		knees_to_blit = font.render("Knees", False, WHITE)
+		open_sqr_bracket = font.render("[", False, WHITE)
+		close_sqr_bracket = font.render("]", False, WHITE)
+		knee_good = font.render("|", False, GREEN)
+		knee_bad = font.render("|", False, RED)
+
+		scr.blit(knees_to_blit, (((constants.START_INFORMATION_BOX_X + 1) * constants.TILE_SIZE, (constants.START_INFORMATION_BOX_Y + 12) * constants.TILE_SIZE)))
+		scr.blit(open_sqr_bracket, (((constants.START_INFORMATION_BOX_X + 4) * constants.TILE_SIZE, (constants.START_INFORMATION_BOX_Y + 12) * constants.TILE_SIZE)))
+		scr.blit(knee_good, (((constants.START_INFORMATION_BOX_X + 5) * constants.TILE_SIZE - 10, (constants.START_INFORMATION_BOX_Y + 12) * constants.TILE_SIZE)))
+		scr.blit(knee_good, (((constants.START_INFORMATION_BOX_X + 6) * constants.TILE_SIZE - 15, (constants.START_INFORMATION_BOX_Y + 12) * constants.TILE_SIZE)))
+		scr.blit(knee_good, (((constants.START_INFORMATION_BOX_X + 7) * constants.TILE_SIZE - 20, (constants.START_INFORMATION_BOX_Y + 12) * constants.TILE_SIZE)))
+		scr.blit(knee_bad, (((constants.START_INFORMATION_BOX_X + 8) * constants.TILE_SIZE - 25, (constants.START_INFORMATION_BOX_Y + 12) * constants.TILE_SIZE)))
+		scr.blit(knee_bad, (((constants.START_INFORMATION_BOX_X + 9) * constants.TILE_SIZE - 30, (constants.START_INFORMATION_BOX_Y + 12) * constants.TILE_SIZE)))
+		scr.blit(close_sqr_bracket, (((constants.START_INFORMATION_BOX_X + 10) * constants.TILE_SIZE - 40, (constants.START_INFORMATION_BOX_Y + 12) * constants.TILE_SIZE)))
+
+		pass
 
 
 class Level(object):
@@ -952,15 +989,16 @@ if __name__ == '__main__':
 
 # Step 2: - Core mechanics that will seperate my game from others
 # Lantern and torches - increasing fov v refilling v - lantern is given at the beginning with one extra oil, and no lantern is spawned during the game
+# Lantern makes player more visible.
 # Objects that emit light.
 # Optimise code - make functions more general, input processing etc... and then: (the most important change i could add from that point is event queue - decide what is done in what order)
-# Noise AI - possible need for an A* algorithm
+# Noise AI - possible need for an A* algorithm DONE
 # Making noise, noise mechanic - either by shouting, tumbling over or throwing
 # Smoke - a place that blocks sight but not movement
-# Walking carefully - if player will hold shift, he will reduce the risk of making more noise
+# Walking carefully - sneaking (crouching)
 # If monster is making noise detectable to player, blit an quesiton mark in the position he did the noise for a couple of turns
 # Noise represented by exclamation marks : [!!!!!!!!!!!!] (Range, and with colors: level) (Level indicates how piercing through the walls it is, how many walls can it pierce till it fades)
-# Monster's vision.
+# Monster's vision. DONE
 # Below 25 level of depth, abhorrent creatures will spawn and it will be necessary to crouch and sneak.
 
 # After step 2 demo
@@ -996,6 +1034,8 @@ if __name__ == '__main__':
 # Maybe movable camera? although it is very hard it will certainly add more mystery and difficulty.
 # HP does not regenerate but you can throw rocks to kill enemies.
 
+# Make enemies that drop special items and special branches! for example: portal to the shadow realm with monster that drops scroll that can stun evil demons for 10 rounds.
+# And with all that, keep the mystery and narrative theme going on. (Not shadow realm, but "you step into the portal, swirling and shaking you transmigrate beyond the realms of worlds!")
 
 # Noise AI (Mechanic: the lower (lvl) the noise detected, the better hearing):
 # 1. Monster has it's own fov map and Level Of Hearing, that is: WHICH LEVEL of noise monster can detect. (If it has good hearing, he can detect low levels of noise)
