@@ -26,12 +26,15 @@ def instant_death(**kwargs):
 
 	target = kwargs.get('target')
 
-	target.fighter.hp = 0
+	if target.fighter:
+		target.fighter.hp = 0
 
-	target.sended_messages.append("Vile force is about to be unleashed on earth!")
-	target.sended_messages.append('{0} dies a horrible death!'.format(target.name.title()))
+		target.sended_messages.append("Vile force is about to be unleashed on earth!")
+		target.sended_messages.append('{0} dies a horrible death!'.format(target.name.title()))
 
-	return 'used'
+		return 'used'
+
+	return 'cancelled'
 
 def increase_max_health(**kwargs):
 	# permanently increases health

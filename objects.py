@@ -20,8 +20,8 @@ class Object(object):
 		self.item = item
 		self.block_sight = block_sight
 		self.sended_messages = []
-		self.noise_map = {}
-		self.noises = {'move': (4, 4, 1), 'crouch': (2, 2, 1)} # LVL | RADIUS | FADE VALUE
+		self.noise_map = {'noise_map': '', 'source': ''}
+		self.noises = {'move': (10, 10, 1), 'crouch': (2, 2, 1)} # LVL | RADIUS | FADE VALUE
 		self.initial_light_radius = initial_light_radius # player is a light source variable for objects
 		self.initial_fov = initial_fov # for monsters
 		self.description =  '' # add multiple entries in dict
@@ -38,7 +38,7 @@ class Object(object):
 			self.item.owner = self
 
 	def move(self, dx, dy, _map, fov_map, objects, pushing=False):
-		if not is_blocked(self.x + dx, self.y + dy, _map, objects) and (self.fighter is not None ):#or pushing):
+		if not is_blocked(self.x + dx, self.y + dy, _map, objects) and (self.fighter is not None):#or pushing):
 			self.clear(self.x, self.y, _map)
 			self.x += dx
 			self.y += dy
@@ -83,6 +83,14 @@ class Object(object):
 	def destroy(self): # make it that it removes obj from objects
 		self.item = None
 		self.img = None
+
+	def make_noise(self, _map, lvl, radius, fade_value, name, message):
+		noise = utils.make_noise_map(self.x, self.y, _map, radius, fade_value, lvl)
+
+		self.sended_messages.append(name + '!')
+		self.sended_messages.append(message)
+		self.noise_map['noise_map'] = noise
+		self.noise_map['source'] = (self.x, self.y)
 
 
 class Fighter(object):
@@ -206,8 +214,7 @@ class SimpleAI(object):
 			rand_dir_x = random.randint(-1, 1)
 			rand_dir_y = random.randint(-1, 1)
 
-			if rand_dir_x and rand_dir_y != 0:
-				self.owner.move(rand_dir_x, rand_dir_y, _map, fov_map, objects)
+			self.owner.move(rand_dir_x, rand_dir_y, _map, fov_map, objects)
 
 			field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
 
@@ -235,59 +242,71 @@ class SimpleAI(object):
 
 class NoiseAI(object):
 
-
+	# make so that it for some turns remembers where is the player
 	def __init__(self, hearing, noise_map=None):
 		self.hearing = hearing
 		self.noise_map = noise_map
 		self.destination = None
-		self.chasing = False
-		self.attacking = False
+		self.investigating = False
 		# it will only listen for player
 		# it gives chase to the place that he heard the sound coming from
 
+
+	def listen(self):
+		got_noise_map = self.noise_map.get('noise_map')
+		if got_noise_map is not None: 
+			if (self.owner.x, self.owner.y) in got_noise_map.keys():
+				if self.hearing <= got_noise_map[(self.owner.x, self.owner.y)]:
+					return self.noise_map.get('source')
+				else:
+					return None
+
+
 	def take_turn(self, _map, fov_map, objects, player):
 
-		if self.noise_map is not None and not self.chasing:
+		# Listen
+		# Investigate
+		# If you are here and there's no player - wander
+		# Stop investigating only when you're at your target
 
-			noise_map = self.noise_map.get('noise_map')
-			source = self.noise_map.get('source')
+		field_of_view.cast_rays(self.owner.x, self.owner.y, fov_map, _map, self.owner.initial_fov)
+		noise = self.listen()
+		vision = self.use_eyes(fov_map, player.x, player.y)
 
-			if noise_map is not None:
+		if noise is not None:
+			print 'A NEW NOISE!'
+			self.destination = noise
+			self.investigating = True
 
-				if (self.owner.x, self.owner.y) in noise_map.keys():
-					if self.hearing <= noise_map[(self.owner.x, self.owner.y)]:
-						self.destination = source
-						self.chasing = True
-						print self.owner.name, "gives chase!" # Add here sound of growling and check if player hears it
+		if self.investigating and not vision:
+			result = self.investigate(fov_map, _map, objects, self.destination, player)
+			if (result == 'reached'):
+				self.investigating = False
 
-		if self.chasing:
-			# A* kicks in
-			self.move_astar(_map, fov_map, objects, player)
-
-		if self.attacking:
-			# it has to attack only if it sees the player
-			self.move_to(_map, fov_map, objects, player)
-
-		if self.destination is None:
-			# use eyes
-
-			field_of_view.cast_rays(self.owner.x, self.owner.y, fov_map, _map, self.owner.initial_fov)
-
-			if fov_map[player.x][player.y] != 1: 
+		if not self.investigating and not vision:
 			# walk randomly
-				rand_dir_x = random.randint(-1, 1)
-				rand_dir_y = random.randint(-1, 1)
+			rand_dir_x = random.randint(-1, 1)
+			rand_dir_y = random.randint(-1, 1)
 
-				if rand_dir_x and rand_dir_y != 0:
-					self.owner.move(rand_dir_x, rand_dir_y, _map, fov_map, objects)
+			self.owner.move(rand_dir_x, rand_dir_y, _map, fov_map, objects)
 
-				field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
-			else:
-				self.move_to(_map, fov_map, objects, player)
-				field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
+			field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
+
+		if vision:
+			self.move_astar(_map, objects, (player.x, player.y), player)
+
+		field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
+
+		print "INVESTIGATING: {0} SEEING: {1}".format(self.investigating, vision)
 
 
-	def move_astar(self, _map, fov_map, objects, player):
+
+	def investigate(self, fov_map, _map, objects, goal, player):
+		process = self.move_astar(_map, objects, goal, player)
+		field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
+		return process
+
+	def move_astar(self, _map, objects, goal, player):
 
 		fov = libtcod.map_new(constants.MAP_WIDTH, constants.MAP_HEIGHT)
 
@@ -296,37 +315,41 @@ class NoiseAI(object):
 				libtcod.map_set_properties(fov, x1, y1, not _map[x1][y1].block_sight, not _map[x1][y1].block_movement)
 
 		for obj in objects:
-			if obj.blocks and obj != self.owner and obj != player: # obj.x, obj.y != source
+			if obj.blocks and obj != self.owner and obj != player:
 				libtcod.map_set_properties(fov, obj.x, obj.y, True, False)
 
 		monster_path = libtcod.path_new_using_map(fov, 1.41)
-		libtcod.path_compute(monster_path, self.owner.x, self.owner.y, player.x, player.y)
+		libtcod.path_compute(monster_path, self.owner.x, self.owner.y, goal[0], goal[1])
 
 		if not libtcod.path_is_empty(monster_path) and libtcod.path_size(monster_path) < 25:
 			x, y = libtcod.path_walk(monster_path, True)
 
+			if x or y:
+				# here will be time to move or attack, and it will return found and fighting
 
-			if self.owner.distance_to(player) > 2:
-				if x or y:
-					self.owner.x = x
-					self.owner.y = y
-			else:
-				self.chasing = False
-				self.attacking = True
-				self.move_to(_map, fov_map, objects, player)
-	
-	def move_to(self, _map, fov_map, objects, player):
-		distance = self.owner.distance_to(player)
+				self.move_to_not_player(_map, fov, objects, x, y)
+
+				if utils.non_obj_distance_to((goal[0], goal[1]), self.owner.x, self.owner.y) < 1:
+					return 'reached'
+
+
+	def move_to_not_player(self, _map, fov_map, objects, target_x, target_y):
+		distance = utils.non_obj_distance_to((target_x, target_y), self.owner.x, self.owner.y)
 
 		if distance != 0:
 			
-			dx = player.x - self.owner.x
-			dy = player.y - self.owner.y
+			dx = target_x - self.owner.x
+			dy = target_y - self.owner.y
 
 			dx = int(round(dx / distance))
 			dy = int(round(dy / distance))
 
-			self.owner.move(dx, dy, _map, fov_map, objects)				
+			self.owner.move(dx, dy, _map, fov_map, objects)	
+
+	def use_eyes(self, fov_map, target_x, target_y):
+		if fov_map[target_x][target_y] != 1: 
+			return False
+		return True
 
 
 class Item(object):
@@ -345,6 +368,8 @@ class Item(object):
 
 		user = kwargs.get('user')
 		ui = kwargs.get('UI')
+
+		print str(user) + ": USER"
 
 		kwargs.update(self.kwargs)
 
@@ -410,3 +435,17 @@ class Equipment(object):
 
 
 
+
+def player_listen_to_noise(player): # nie bedzie dzialac na wiele halasow
+	
+	# Zrobic jeszcze jeden dzwonek, ktory dzwoni slabiej i zobaczyc czy sa ulozone pokolei, jesli tak, bedzie sie dalo za jednym razem zobaczyc czy slyszy sie dany obiekt czy nie
+
+	try:
+		noise_maps = player.hearing_map.get('noise_maps')[0]
+		#print noise_maps
+
+		if (player.x, player.y) in noise_maps.keys():
+			if player.hearing <= noise_maps[(player.x, player.y)]:
+				return player.hearing_map.get('sources')
+	except IndexError:
+		pass

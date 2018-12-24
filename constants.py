@@ -92,5 +92,5 @@ ABHORRENT_CREATURE_MAX_HP = 100 # start hp
 
 # DESCRIPIONS
 
-player_DESCRIPTION = "Before this horrid tragedy you were just a typical guy, living in house with your cats in a quiet village. You did not have any real ambitions, only dreams and hopes; many of which including that one girl. All has changed now and there is constant noise in your mind, images of The Mage, his scared wise eyes, vivid descriptions of him talking to you not so long ago... 'I must be insane' you keep saying to yourself; but, still going forward."
-abhorrent_creature_DESCRIPTION = "What is this?! It growls disturbingly, I'm so scared! It will be better if it doesn't hear me..."
+player_DESCRIPTION = "What did I do to deserve this?" # Make it vary with mood and health.
+abhorrent_creature_DESCRIPTION = "What is this?! Hope it doesn't hear me..."

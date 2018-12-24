@@ -61,6 +61,7 @@ class Game(object):
 		helmets_SPRITES = Spritesheet("tiles/Hat.png")
 		long_weapons = Spritesheet("tiles/LongWep.png")
 		light_SPRITES = Spritesheet("tiles/Light.png")
+		music_SPRITES = Spritesheet("tiles/Music.png")
 
 		player_IMG = characters_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		wall_IMG = walls_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE))
@@ -73,6 +74,7 @@ class Game(object):
 		great_steel_long_sword_IMG = long_weapons.image_at((0, constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		lantern_IMG = light_SPRITES.image_at((3 * constants.TILE_SIZE, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		goblin_IMG = characters_SPRITES.image_at((0 * constants.TILE_SIZE, 12 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+		magic_bell_IMG = music_SPRITES.image_at((constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 
 
 		hp_potion_IMG = potions_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
@@ -99,7 +101,7 @@ class Game(object):
 
 		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
 				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG,
-				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG, ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG, goblin_IMG]
+				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG, ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG, goblin_IMG, magic_bell_IMG]
 
 	def set_map(self):
 
@@ -114,7 +116,7 @@ class Game(object):
 
 
 	def init_pygame(self):
-		global scr, player, font
+		global scr, player, font, magic_bell
 
 		pygame.init()
 		pygame.font.init()
@@ -122,16 +124,19 @@ class Game(object):
 		font = pygame.font.Font("Px437_IBM_VGA8.ttf", constants.FONT_SIZE)
 		subscript_font = pygame.font.Font("Px437_IBM_VGA8.ttf", 8) # font will be used to tell how many of exact items are in the inventory | NOT USED
 
-		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT), pygame.FULLSCREEN)
+		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))#, pygame.FULLSCREEN)
 
 		pygame.display.set_caption("RL")
 
 		self.images = self.get_images()
 
-		player_fighter_component = objects.Fighter(20, 3, 5)
+		player_fighter_component = objects.Fighter(500, 3, 5)
 		# sprites in dict too
-		player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=2)
+		player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=5)
+		player.noises['move'] = (10, 10, 10)
 		player.description = constants.player_DESCRIPTION
+		player.hearing_map = {}
+		player.hearing = 4
 
 		worm_AI = objects.SimpleAI()
 		worm_fighter_component = objects.Fighter(2, 2, 1)
@@ -156,10 +161,10 @@ class Game(object):
 		abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI, initial_fov=3)
 		abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
 
-		goblin_AI = objects.NoiseAI(hearing=4)
-		goblin_fighter_component = objects.Fighter(25, 10, 10)
-		goblin = objects.Object(24, 11, self.images[25], 'Goblin', blocks=True, block_sight=True, fighter=goblin_fighter_component, ai=goblin_AI, initial_fov=4)
-
+		#goblin_AI = objects.NoiseAI(hearing=1)
+		#goblin_fighter_component = objects.Fighter(25, 10, 10)
+		#goblin = objects.Object(24, 11, self.images[25], 'Goblin', blocks=True, block_sight=True, fighter=goblin_fighter_component, ai=goblin_AI, initial_fov=5)
+		magic_bell = objects.Object(24, 11, self.images[26], 'Magic Bell', blocks=True, block_sight=True)
 
 		for n in range(200):
 			rand_x = random.randrange(constants.MAP_WIDTH)
@@ -216,7 +221,7 @@ class Game(object):
 
 
 		self.objects.append(player)
-		self.objects.append(abhorrent_creature)
+		#self.objects.append(abhorrent_creature)
 		self.objects.append(scroll_of_death)
 		self.objects.append(bronze_armor)
 		self.objects.append(crystal_armor)
@@ -226,7 +231,8 @@ class Game(object):
 		self.objects.append(great_steel_long_sword)
 		self.objects.append(lantern)
 		self.objects.append(oil)
-		self.objects.append(goblin)
+		#self.objects.append(goblin)
+		self.objects.append(magic_bell)
 
 		self.fov_map = field_of_view.set_fov(self.fov_map)
 		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map, radius=player.fighter.max_light_radius)
@@ -280,6 +286,9 @@ class Game(object):
 						return 'took_turn'
 				if event.key == pygame.K_SEMICOLON:
 					return 'look'
+
+				if event.key == pygame.K_PERIOD:
+					return 'took_turn'
 
 		return 'idle'
 
@@ -383,7 +392,7 @@ class Game(object):
 		if item.item.targetable:
 			target = self.enter_look_mode("Target what?")
 			if target is not None:
-				item.item.use(target=target, user=player, item=item)
+				item.item.use(target=target, user=player, item=item, UI=self.ui)
 				return 'took_turn'
 
 			else:
@@ -425,8 +434,22 @@ class Game(object):
 
 				if turn == 'player_turn':
 
+					# make it into a function
+
+					player.hearing_map['noise_maps'] = list()
+					player.hearing_map['sources'] = list()
+
+					for obj in self.objects:
+						if obj != player:
+							if obj.noise_map['noise_map'] != '':
+								player.hearing_map['noise_maps'].append(obj.noise_map['noise_map'])
+
+							if obj.noise_map['source'] != '':
+								player.hearing_map['sources'].append(obj.noise_map['source'])
+
 					player_action = self.handle_keys()
 					mouse_action = self.handle_mouse()
+					objects.player_listen_to_noise(player)
 
 					if player_action == 'look':
 						target = self.enter_look_mode("Look at what?")
@@ -436,7 +459,9 @@ class Game(object):
 					self.state = self.check_for_player_death()
 
 					if player_action == 'took_turn' or mouse_action == 'took_turn':
-						print player.x, player.y
+						#print player.hearing_map
+						#print 10 * '\n'
+						#print player.x, player.y
 
 						x = player.noise_map.get('noise_map')
 
@@ -451,6 +476,8 @@ class Game(object):
 						turn = 'monster_turn'
 
 				if turn == 'monster_turn':
+					magic_bell.make_noise(self.map, 10, 10, 10, 'Ding', 'Bell makes a fucking noise')
+					#self.listen_for_messagess(magic_bell)
 					for obj in self.objects:
 
 						self.check_for_death(obj)
@@ -509,13 +536,13 @@ class Game(object):
 
 		for obj in self.objects:
 			if obj.fighter is None:
-				if field_of_view.is_in_fov(self.fov_map, obj):
-					obj.draw(scr)
+				#if field_of_view.is_in_fov(self.fov_map, obj):
+				obj.draw(scr)
 
 		for obj in self.objects:
 			if obj.fighter is not None and obj.name != 'player':
-				if field_of_view.is_in_fov(self.fov_map, obj):
-					obj.draw(scr)
+				#if field_of_view.is_in_fov(self.fov_map, obj):
+				obj.draw(scr)
 			obj.clear_messages()
 
 
@@ -989,17 +1016,19 @@ if __name__ == '__main__':
 
 # Step 2: - Core mechanics that will seperate my game from others
 # Lantern and torches - increasing fov v refilling v - lantern is given at the beginning with one extra oil, and no lantern is spawned during the game
-# Lantern makes player more visible.
-# Objects that emit light.
+# Lantern makes player more visible. <- Very important
+# Shadow mechanic? - represent "dark" places with "2" in the fov array
+# Objects that emit light. - they will augment the vision when seen
 # Optimise code - make functions more general, input processing etc... and then: (the most important change i could add from that point is event queue - decide what is done in what order)
 # Noise AI - possible need for an A* algorithm DONE
 # Making noise, noise mechanic - either by shouting, tumbling over or throwing
 # Smoke - a place that blocks sight but not movement
-# Walking carefully - sneaking (crouching)
+# Walking carefully - sneaking (crouching) Done, know I need to make the player scream if he crouches for too long. ("Pysio's legs hurt!")
 # If monster is making noise detectable to player, blit an quesiton mark in the position he did the noise for a couple of turns
 # Noise represented by exclamation marks : [!!!!!!!!!!!!] (Range, and with colors: level) (Level indicates how piercing through the walls it is, how many walls can it pierce till it fades)
 # Monster's vision. DONE
 # Below 25 level of depth, abhorrent creatures will spawn and it will be necessary to crouch and sneak.
+# To show what player has already explored, make new item called magic map, that will be taking notes automatically
 
 # After step 2 demo
 
@@ -1026,8 +1055,8 @@ if __name__ == '__main__':
 # That processess input, puts action into queues, returns states etc
 
 
-# Make the object that has the ai, have its own fov map - it's not good that it works in ways of "If you can see me, I can see you", because it subtracts the tactical possibility of hiding, while still seing other object etc.
-# Another problem that this creates, is that when I will be going to implement lighting, and objects that create light (augments the fov when they're in my fov), is simply that it augments the vision of enemies!
+# Make the object that has the ai, have its own fov map - it's not good that it works in ways of "If you can see me, I can see you", because it subtracts the tactical possibility of hiding, while still seing other object etc. DONE
+# Another problem that this creates, is that when I will be going to implement lighting, and objects that create light (augment the fov when they're in my fov), is simply that it augments the vision of enemies!
 # Abhorrent creatures are pretty much blind - they can see only for one tile (other than themselves) - but they have excellent hearing
 # Mage will tell in the beginning that the casting unleashed creatures that have weak sight.
 
@@ -1038,12 +1067,12 @@ if __name__ == '__main__':
 # And with all that, keep the mystery and narrative theme going on. (Not shadow realm, but "you step into the portal, swirling and shaking you transmigrate beyond the realms of worlds!")
 
 # Noise AI (Mechanic: the lower (lvl) the noise detected, the better hearing):
-# 1. Monster has it's own fov map and Level Of Hearing, that is: WHICH LEVEL of noise monster can detect. (If it has good hearing, he can detect low levels of noise)
-# 2. The object that emits sound has: Max level of sound that can be created and range of that sound. 
-# 3. Each turn, surrounding can make noise and it uses the same algorithm that fov does.
-# 4. Each noise type has to have an indicator, that shows how quickly the noise fades.
+# 1. Monster has it's own fov map and Level Of Hearing, that is: WHICH LEVEL of noise monster can detect. (If it has good hearing, he can detect low levels of noise) done
+# 2. The object that emits sound has: Max level of sound that can be created and range of that sound. done
+# 3. Each turn, surrounding can make noise and it uses the same algorithm that fov does. done
+# 4. Each noise type has to have an indicator, that shows how quickly the noise fades. done
 # 5. If player makes noise that monster can hear, he gets message "something growls!" (Player gets a notification only if he hears the sound)
 # 6. Sneaking is a good option, but it hurts your ankles. (If used too much, player will scream)
 # 7. Sound is made: "fov" of sound traverses with it's own properties, hitting walls, fades etc.: Hits monster that can hear it: Monster goes to sound source.
 
-# Ok, now we have to create another creature on which we will test this.
+# Ok, now we have to create another creature on which we will test this. done

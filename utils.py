@@ -1,5 +1,6 @@
 from field_of_view import sintable
 from field_of_view import costable
+import math
 
 
 def make_noise_map(x, y, level_map, radius, fade_value, top_noise_value):
@@ -47,3 +48,9 @@ def make_noise_map(x, y, level_map, radius, fade_value, top_noise_value):
             _y += ay
 
     return audible_places  # key - cords, values - lvl: {(20, 20): 3}
+
+
+def non_obj_distance_to(other, self_x, self_y):
+    dx = other[0] - self_x
+    dy = other[1] - self_y
+    return math.sqrt(dx ** 2 + dy ** 2)
