@@ -20,8 +20,8 @@ class Object(object):
 		self.item = item
 		self.block_sight = block_sight
 		self.sended_messages = []
-		self.noise_map = {'noise_map': '', 'source': ''}
-		self.noises = {'move': (10, 10, 1), 'crouch': (2, 2, 1)} # LVL | RADIUS | FADE VALUE
+		self.noise_map = {'noise_map': '', 'source': ''} # dictionary of noises
+		self.noises = {'move': (10, 10, 10), 'crouch': (2, 2, 1)} # LVL | RADIUS | FADE VALUE
 		self.initial_light_radius = initial_light_radius # player is a light source variable for objects
 		self.initial_fov = initial_fov # for monsters
 		self.description =  '' # add multiple entries in dict
@@ -43,13 +43,15 @@ class Object(object):
 			self.x += dx
 			self.y += dy
 			if not self.fighter.sneaking:
-				noise = utils.make_noise_map(self.x, self.y, _map, self.noises['move'][1], self.noises['move'][2], self.noises['move'][0])
-				self.noise_map['noise_map'] = noise
-				self.noise_map['source'] = (self.x, self.y)
+				self.make_noise(_map, self.noises['move'][0], self.noises['move'][1], self.noises['move'][2], '', '')
+				#noise = utils.make_noise_map(self.x, self.y, _map, self.noises['move'][1], self.noises['move'][2], self.noises['move'][0])
+				#self.noise_map['noise_map'] = noise
+				#self.noise_map['source'] = (self.x, self.y)
 			else:
-				noise = utils.make_noise_map(self.x, self.y, _map, self.noises['crouch'][1], self.noises['crouch'][2], self.noises['crouch'][0])
-				self.noise_map['noise_map'] = noise
-				self.noise_map['source'] = (self.x, self.y)
+				self.make_noise(_map, self.noises['crouch'][0], self.noises['crouch'][1]. self.noises['crouch'][2], '', '')
+				# add "sound effect"
+				#self.noise_map['noise_map'] = noise
+				#self.noise_map['source'] = (self.x, self.y)
 		else:
 			for obj in objects:
 				if self.name != constants.PLAYER_NAME:
@@ -87,8 +89,6 @@ class Object(object):
 	def make_noise(self, _map, lvl, radius, fade_value, name, message):
 		noise = utils.make_noise_map(self.x, self.y, _map, radius, fade_value, lvl)
 
-		self.sended_messages.append(name + '!')
-		self.sended_messages.append(message)
 		self.noise_map['noise_map'] = noise
 		self.noise_map['source'] = (self.x, self.y)
 
@@ -300,7 +300,6 @@ class NoiseAI(object):
 		print "INVESTIGATING: {0} SEEING: {1}".format(self.investigating, vision)
 
 
-
 	def investigate(self, fov_map, _map, objects, goal, player):
 		process = self.move_astar(_map, objects, goal, player)
 		field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
@@ -321,7 +320,7 @@ class NoiseAI(object):
 		monster_path = libtcod.path_new_using_map(fov, 1.41)
 		libtcod.path_compute(monster_path, self.owner.x, self.owner.y, goal[0], goal[1])
 
-		if not libtcod.path_is_empty(monster_path) and libtcod.path_size(monster_path) < 25:
+		if not libtcod.path_is_empty(monster_path) and libtcod.path_size(monster_path) < 100:
 			x, y = libtcod.path_walk(monster_path, True)
 
 			if x or y:
@@ -350,7 +349,6 @@ class NoiseAI(object):
 		if fov_map[target_x][target_y] != 1: 
 			return False
 		return True
-
 
 class Item(object):
 	def __init__(self, use_func=None, equipment=None, can_break=False, targetable=False, **kwargs):
@@ -441,11 +439,23 @@ def player_listen_to_noise(player): # nie bedzie dzialac na wiele halasow
 	# Zrobic jeszcze jeden dzwonek, ktory dzwoni slabiej i zobaczyc czy sa ulozone pokolei, jesli tak, bedzie sie dalo za jednym razem zobaczyc czy slyszy sie dany obiekt czy nie
 
 	try:
-		noise_maps = player.hearing_map.get('noise_maps')[0]
-		#print noise_maps
+		noise_maps = player.hearing_map.get('noise_maps')
+		sources = player.hearing_map.get('sources')
+		# add the "sound effect" | name of the noise
+		list_of_sources = []
 
-		if (player.x, player.y) in noise_maps.keys():
-			if player.hearing <= noise_maps[(player.x, player.y)]:
-				return player.hearing_map.get('sources')
+		len_of_noises = len(noise_maps)
+
+		for x in range(len_of_noises):
+			noise_map = noise_maps[x]
+			source = sources[x]
+			# We have our noises and sources grouped
+			
+			if (player.x, player.y) in noise_maps[x].keys():
+				if player.hearing <= noise_map[(player.x, player.y)]:
+					list_of_sources.append(source)
+
+		return list_of_sources
+
 	except IndexError:
 		pass

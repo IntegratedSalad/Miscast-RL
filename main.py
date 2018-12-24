@@ -75,6 +75,7 @@ class Game(object):
 		lantern_IMG = light_SPRITES.image_at((3 * constants.TILE_SIZE, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		goblin_IMG = characters_SPRITES.image_at((0 * constants.TILE_SIZE, 12 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		magic_bell_IMG = music_SPRITES.image_at((constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+		noise_indicator_IMG = ui_two_SPRITES.image_at((12 * constants.TILE_SIZE, 3 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 
 
 		hp_potion_IMG = potions_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
@@ -101,7 +102,8 @@ class Game(object):
 
 		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
 				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG,
-				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG, ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG, goblin_IMG, magic_bell_IMG]
+				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG, 
+				ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG, goblin_IMG, magic_bell_IMG, noise_indicator_IMG]
 
 	def set_map(self):
 
@@ -116,7 +118,7 @@ class Game(object):
 
 
 	def init_pygame(self):
-		global scr, player, font, magic_bell
+		global scr, player, font#, magic_bell, second_magic_bell
 
 		pygame.init()
 		pygame.font.init()
@@ -132,11 +134,12 @@ class Game(object):
 
 		player_fighter_component = objects.Fighter(500, 3, 5)
 		# sprites in dict too
-		player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=5)
+		player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=3)
 		player.noises['move'] = (10, 10, 10)
 		player.description = constants.player_DESCRIPTION
-		player.hearing_map = {}
-		player.hearing = 4
+		player.hearing_map = {} # only player has hearing map
+		player.hearing = 1
+		player.knee_health = 10
 
 		worm_AI = objects.SimpleAI()
 		worm_fighter_component = objects.Fighter(2, 2, 1)
@@ -156,15 +159,16 @@ class Game(object):
 				#worm = objects.Object(2, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component) # 2 7
 				#self.objects.append(worm)
  
- 		abhorrent_creature_AI = objects.NoiseAI(hearing=6)
+ 		abhorrent_creature_AI = objects.NoiseAI(hearing=1)
  		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
 		abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI, initial_fov=3)
 		abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
 
-		#goblin_AI = objects.NoiseAI(hearing=1)
-		#goblin_fighter_component = objects.Fighter(25, 10, 10)
-		#goblin = objects.Object(24, 11, self.images[25], 'Goblin', blocks=True, block_sight=True, fighter=goblin_fighter_component, ai=goblin_AI, initial_fov=5)
-		magic_bell = objects.Object(24, 11, self.images[26], 'Magic Bell', blocks=True, block_sight=True)
+		goblin_AI = objects.NoiseAI(hearing=1)
+		goblin_fighter_component = objects.Fighter(25, 10, 10)
+		goblin = objects.Object(24, 11, self.images[25], 'Goblin', blocks=True, block_sight=True, fighter=goblin_fighter_component, ai=goblin_AI, initial_fov=5)
+		#magic_bell = objects.Object(24, 11, self.images[26], 'Magic Bell', blocks=True, block_sight=True)
+		#second_magic_bell = objects.Object(24, 17, self.images[26], 'Magic Bell', blocks=True, block_sight=True)
 
 		for n in range(200):
 			rand_x = random.randrange(constants.MAP_WIDTH)
@@ -221,7 +225,7 @@ class Game(object):
 
 
 		self.objects.append(player)
-		#self.objects.append(abhorrent_creature)
+		self.objects.append(abhorrent_creature)
 		self.objects.append(scroll_of_death)
 		self.objects.append(bronze_armor)
 		self.objects.append(crystal_armor)
@@ -231,8 +235,9 @@ class Game(object):
 		self.objects.append(great_steel_long_sword)
 		self.objects.append(lantern)
 		self.objects.append(oil)
-		#self.objects.append(goblin)
-		self.objects.append(magic_bell)
+		self.objects.append(goblin)
+		#self.objects.append(magic_bell)
+		#self.objects.append(second_magic_bell)
 
 		self.fov_map = field_of_view.set_fov(self.fov_map)
 		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map, radius=player.fighter.max_light_radius)
@@ -422,6 +427,7 @@ class Game(object):
 		player.sended_messages.append("For more help press '?'.")
 		player.sended_messages.append("You descend into your own basement.")
 		self.listen_for_messagess(player)
+		noises = None
 
 		turn = 'player_turn'
 
@@ -434,11 +440,10 @@ class Game(object):
 
 				if turn == 'player_turn':
 
-					# make it into a function
-
 					player.hearing_map['noise_maps'] = list()
 					player.hearing_map['sources'] = list()
 
+					# make it into a function | use_ears()
 					for obj in self.objects:
 						if obj != player:
 							if obj.noise_map['noise_map'] != '':
@@ -449,7 +454,10 @@ class Game(object):
 
 					player_action = self.handle_keys()
 					mouse_action = self.handle_mouse()
-					objects.player_listen_to_noise(player)
+
+					noises = objects.player_listen_to_noise(player)
+
+					#print noises
 
 					if player_action == 'look':
 						target = self.enter_look_mode("Look at what?")
@@ -459,25 +467,22 @@ class Game(object):
 					self.state = self.check_for_player_death()
 
 					if player_action == 'took_turn' or mouse_action == 'took_turn':
-						#print player.hearing_map
-						#print 10 * '\n'
-						#print player.x, player.y
 
 						x = player.noise_map.get('noise_map')
 
-						if x is not None:
-							for key in x.keys():
-								_x = key[0] * constants.TILE_SIZE
-								_y = key[1] * constants.TILE_SIZE
-								scr.blit(self.images[0], (_x, _y))
-							pygame.display.flip()
+						#if x is not None:
+						#	for key in x.keys():
+						#		_x = key[0] * constants.TILE_SIZE
+						#		_y = key[1] * constants.TILE_SIZE
+						#		scr.blit(self.images[0], (_x, _y))
+						#	pygame.display.flip()
 
 						self.listen_for_messagess(player)
 						turn = 'monster_turn'
 
 				if turn == 'monster_turn':
-					magic_bell.make_noise(self.map, 10, 10, 10, 'Ding', 'Bell makes a fucking noise')
-					#self.listen_for_messagess(magic_bell)
+					#magic_bell.make_noise(self.map, 10, 10, 10, 'Ding', 'Bell makes a fucking noise')
+					#second_magic_bell.make_noise(self.map, 3, 10, 10, 'Ding', 'Bell makes a fucking noise')
 					for obj in self.objects:
 
 						self.check_for_death(obj)
@@ -493,10 +498,15 @@ class Game(object):
 		
 							self.listen_for_messagess(obj)
 
+					player.hearing_map = {}
 					player.noise_map = {}
+
 					turn = 'player_turn'
 
 				self.draw_all()
+				if noises:
+						# display !
+					self.ui.draw_noise_indicators(noises, self.fov_map)
 
 			fps = font.render("FPS: {0}".format(int(clock.get_fps())), False, WHITE)
 			scr.blit(fps, (0, 0))
@@ -527,7 +537,7 @@ class Game(object):
 					else:
 						scr.blit(self.images[3], (_x, _y))
 
-		self.ui.draw(scr)
+		self.ui.draw(scr, player.knee_health)
 		self.draw_objects()
 		player.draw(scr)
 		player.clear_messages() # we clear his messages after we process them, that is we cannot do that in run method
@@ -536,13 +546,13 @@ class Game(object):
 
 		for obj in self.objects:
 			if obj.fighter is None:
-				#if field_of_view.is_in_fov(self.fov_map, obj):
-				obj.draw(scr)
+				if field_of_view.is_in_fov(self.fov_map, obj):
+					obj.draw(scr)
 
 		for obj in self.objects:
 			if obj.fighter is not None and obj.name != 'player':
-				#if field_of_view.is_in_fov(self.fov_map, obj):
-				obj.draw(scr)
+				if field_of_view.is_in_fov(self.fov_map, obj):
+					obj.draw(scr)
 			obj.clear_messages()
 
 
@@ -806,7 +816,7 @@ class UI(object):
 		# add contents here
 		# draw name of the rect in the middle of upper part of the rect
 
-	def draw(self, scr): #draw_main_screen
+	def draw(self, scr, knee_health): #draw_main_screen
 		messages_IMAGES = [self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
 		information_IMAGES  = messages_IMAGES
 
@@ -814,7 +824,7 @@ class UI(object):
 		self.draw_rect(constants.START_INFORMATION_BOX_X, constants.START_INFORMATION_BOX_Y, 12, 20, messages_IMAGES, scr, player.name.upper())
 		self.draw_rect(constants.INVENTORY_BOX_X, constants.INVENTORY_BOX_Y, constants.INVENTORY_WIDTH, constants.INVENTORY_HEIGHT, messages_IMAGES, scr, 'INVENTORY')
 		self.draw_inventory(scr)
-		self.draw_equipment(scr)
+		self.draw_equipment(scr, knee_health)
 
 		hp_to_blit = font.render("HP: {0} / {1}".format(player.fighter.hp, player.fighter.max_hp), False, RED)
 
@@ -940,7 +950,7 @@ class UI(object):
 			player.fighter.inventory.append(piece_of_equipment)
 			self.add_item_to_UI(piece_of_equipment)
 
-	def draw_equipment(self, scr):
+	def draw_equipment(self, scr, knee_health):
 
 		helmet = self.equipment_places['helmet']
 		breastplate = self.equipment_places['breastplate']
@@ -965,9 +975,9 @@ class UI(object):
 				y = piece[1].y * constants.TILE_SIZE
 				scr.blit(image_to_blit, (x, y))
 
-		self.draw_infos() # such as sneaking and sound
+		self.draw_infos(knee_health) # such as sneaking and sound
 
-	def draw_infos(self):
+	def draw_infos(self, knee_health):
 
 		# knees
 
@@ -985,6 +995,20 @@ class UI(object):
 		scr.blit(knee_bad, (((constants.START_INFORMATION_BOX_X + 8) * constants.TILE_SIZE - 25, (constants.START_INFORMATION_BOX_Y + 12) * constants.TILE_SIZE)))
 		scr.blit(knee_bad, (((constants.START_INFORMATION_BOX_X + 9) * constants.TILE_SIZE - 30, (constants.START_INFORMATION_BOX_Y + 12) * constants.TILE_SIZE)))
 		scr.blit(close_sqr_bracket, (((constants.START_INFORMATION_BOX_X + 10) * constants.TILE_SIZE - 40, (constants.START_INFORMATION_BOX_Y + 12) * constants.TILE_SIZE)))
+		pass
+
+	def draw_noise_indicators(self, noises, fov):
+
+		for noise in noises:
+
+			icon = self.images[27]
+			x = noise[0]
+			y = noise[1]
+
+			if fov[noise[0]][noise[1]] != 1:
+				#print x, y
+				scr.blit(icon, (x * constants.TILE_SIZE, y * constants.TILE_SIZE))
+
 
 		pass
 
@@ -1073,6 +1097,6 @@ if __name__ == '__main__':
 # 4. Each noise type has to have an indicator, that shows how quickly the noise fades. done
 # 5. If player makes noise that monster can hear, he gets message "something growls!" (Player gets a notification only if he hears the sound)
 # 6. Sneaking is a good option, but it hurts your ankles. (If used too much, player will scream)
-# 7. Sound is made: "fov" of sound traverses with it's own properties, hitting walls, fades etc.: Hits monster that can hear it: Monster goes to sound source.
+# 7. Sound is made: "fov" of sound traverses with it's own properties, hitting walls, fades etc.: Hits monster that can hear it: Monster goes to sound source. done
 
 # Ok, now we have to create another creature on which we will test this. done
