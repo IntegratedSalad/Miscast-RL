@@ -154,7 +154,7 @@ class Game(object):
 			else:
 				gobleen_ai = objects.NoiseAI(hearing=1)
 				gobleen_fighter_component = objects.Fighter(25, 10, 10)
-				gobleen = objects.Object(mon_x, mon_y, self.images[25], 'gobleen', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component) # 2 7
+				gobleen = objects.Object(mon_x, mon_y, self.images[25], 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component) # 2 7
 				gobleen.sounds['sound_walk'] = "mumbling and shuffling."
 				self.objects.append(gobleen)
  
@@ -526,6 +526,7 @@ class Game(object):
 		
 						if obj.ai:
 							obj.ai.noise_map = player.noise_map # ITS NOISE MAP IS HEARING MAP AND IS DEALT IN listen() METHOD.
+							print player.noise_map
 
 							obj.clear_messages() # clear messages - any previous messages are not up to date
 							obj.ai.take_turn(_map=self.map, fov_map=obj.fov_map, objects=self.objects, player=player)
