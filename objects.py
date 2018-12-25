@@ -344,13 +344,13 @@ class NoiseAI(object):
 			if x or y:
 				# here will be time to move or attack, and it will return found and fighting
 
-				self.move_to_not_player(_map, fov, objects, x, y)
+				self.move_to_target(_map, fov, objects, x, y) 
 
 				if utils.non_obj_distance_to((goal[0], goal[1]), self.owner.x, self.owner.y) < 1:
 					return 'reached'
 
 
-	def move_to_not_player(self, _map, fov_map, objects, target_x, target_y):
+	def move_to_target(self, _map, fov_map, objects, target_x, target_y):
 		distance = utils.non_obj_distance_to((target_x, target_y), self.owner.x, self.owner.y)
 
 		if distance != 0:
