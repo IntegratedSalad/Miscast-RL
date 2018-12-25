@@ -40,7 +40,6 @@ def increase_max_health(**kwargs):
 	# permanently increases health
 	pass
 
-
 def uncontrolled_teleportation(**kwargs):
 
 	target = kwargs.get('target')
@@ -108,5 +107,4 @@ def refill_lantern(**kwargs):
 
 	player.sended_messages.append("There is no lantern in your inventory.")
 	return 'cancelled'
-
-
+	
