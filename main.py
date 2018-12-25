@@ -152,12 +152,11 @@ class Game(object):
 			if self.map[mon_x][mon_y].block_sight or (mon_x, mon_y) == (player.x, player.y):  
 				continue
 			else:
-				pass
-				#worm_AI = objects.SimpleAI()
-				#worm_fighter_component = objects.Fighter(2, 2, 1)
-				#worm = objects.Object(mon_x, mon_y, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component) # 2 7
-				#worm = objects.Object(2, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component) # 2 7
-				#self.objects.append(worm)
+				gobleen_ai = objects.NoiseAI(hearing=1)
+				gobleen_fighter_component = objects.Fighter(25, 10, 10)
+				gobleen = objects.Object(mon_x, mon_y, self.images[25], 'gobleen', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component) # 2 7
+				gobleen.sounds['sound_walk'] = "mumbling and shuffling."
+				self.objects.append(gobleen)
  
  		abhorrent_creature_AI = objects.NoiseAI(hearing=1)
  		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
@@ -441,28 +440,42 @@ class Game(object):
 
 				if turn == 'player_turn':
 
-					player.hearing_map['noise_maps'] = list()
-					player.hearing_map['sources'] = list()
-					player.hearing_map['sounds'] = list()
+					#player.hearing_map['noise_maps'] = list()
+					#player.hearing_map['sources'] = list()
+					#player.hearing_map['sounds'] = list()
 
 					# make it into a function | use_ears()
-					for obj in self.objects:
-						if obj != player:
-							if obj.noise_map['noise_map'] != '':
-								player.hearing_map['noise_maps'].append(obj.noise_map['noise_map'])
+					#for obj in self.objects:
+					#	if obj != player:
+					#		if obj.noise_map['noise_map'] != '':
+					#			player.hearing_map['noise_maps'].append(obj.noise_map['noise_map'])
+#
+					#		if obj.noise_map['source'] != '':
+					#			player.hearing_map['sources'].append(obj.noise_map['source'])
 
-							if obj.noise_map['source'] != '':
-								player.hearing_map['sources'].append(obj.noise_map['source'])
+					#		if obj.noise_map['sound'] != '':
+					#			player.hearing_map['sounds'].append(obj.noise_map['sound'])
 
-							if obj.noise_map['sound'] != '':
-								player.hearing_map['sounds'].append(obj.noise_map['sound'])
+
+
+					# HOW SOUNDS WORK:
+					# A) For Player:
+					# 	1. Each monster turn, player.hearing_map is resetted, and given every sound of monsters on map.
+					# 	2. player_listen_to_noise returns only that source, that he can hear.
+					# 	3. IN CASE OF THE NOISE MAP OF ENEMY, ITS NOISE MAP IS ITS HEARING MAP (when I tried to change naming of that, it was giving me error that i couldn't get rid of)
+					# 	4. When there is noise that player can hear - it is shown by self.ui.draw_noise_indicators(noises, self.fov_map).
+					# B) For Enemy:
+					#	1. player.noise_map is given to ai.noise map (hearing map)
+					#	2. listen() method is very similar to player_listen_to_noise, but it "listens" to only one source (because only player gives it its noise map)
+					#	3. Enemy investigates when the value that it can hear is in its hearing reach, and wanders randomly when it gets there, and the player isn't there.
+					#	4. When player is there, it gives chase.
+ 
+
 
 					player_action = self.handle_keys()
 					mouse_action = self.handle_mouse()
 
 					noises = objects.player_listen_to_noise(player)
-
-					#print noises
 
 					if player_action == 'look':
 						noises = objects.player_listen_to_noise(player)
@@ -476,17 +489,20 @@ class Game(object):
 
 						objects.player_hurt_or_heal_knees(player, self.map)
 
-						x = player.noise_map.get('noise_map')
 
-						try:
-							if x is not None:
-								for key in x.keys():
-									_x = key[0] * constants.TILE_SIZE
-									_y = key[1] * constants.TILE_SIZE
-									scr.blit(self.images[0], (_x, _y))
-								pygame.display.flip()
-						except AttributeError:
-							pass
+						# Show noise that player makes
+
+						#x = player.noise_map.get('noise_map')
+
+						#try:
+						#	if x is not None:
+						#		for key in x.keys():
+						#			_x = key[0] * constants.TILE_SIZE
+						#			_y = key[1] * constants.TILE_SIZE
+						#			scr.blit(self.images[0], (_x, _y))
+						#	pygame.display.flip()
+						#except AttributeError:
+						#	pass
 
 						self.listen_for_messagess(player)
 						turn = 'monster_turn'
@@ -494,8 +510,13 @@ class Game(object):
 						# add manage_player function, where there will be all this everything that is done with player, and recovering knee health.
 
 				if turn == 'monster_turn':
-					#magic_bell.make_noise(self.map, 10, 10, 10, 'Ding', 'Bell makes a fucking noise')
-					#second_magic_bell.make_noise(self.map, 3, 10, 10, 'Ding', 'Bell makes a fucking noise')
+					#magic_bell.make_noise(self.map, 10, 10, 10, 'Ding', 'Bell makes a noise')
+					#second_magic_bell.make_noise(self.map, 3, 10, 10, 'Ding', 'Bell makes a noise')
+
+					player.hearing_map['noise_maps'] = list()
+					player.hearing_map['sources'] = list()
+					player.hearing_map['sounds'] = list()
+
 					for obj in self.objects:
 
 						self.check_for_death(obj)
@@ -504,14 +525,27 @@ class Game(object):
 							obj.fighter.manage_equipment()
 		
 						if obj.ai:
-							obj.ai.noise_map = player.noise_map
+							obj.ai.noise_map = player.noise_map # ITS NOISE MAP IS HEARING MAP AND IS DEALT IN listen() METHOD.
 
 							obj.clear_messages() # clear messages - any previous messages are not up to date
 							obj.ai.take_turn(_map=self.map, fov_map=obj.fov_map, objects=self.objects, player=player)
 		
 							self.listen_for_messagess(obj)
 
-					player.hearing_map = {}
+						if obj != player:
+
+							if obj.noise_map is not None:
+
+								if obj.noise_map['noise_map'] != '':
+									player.hearing_map['noise_maps'].append(obj.noise_map['noise_map']) # Give every place, where the sound was.
+
+								if obj.noise_map['source'] != '':
+									player.hearing_map['sources'].append(obj.noise_map['source']) # Give the source of the sound.
+
+								if obj.noise_map['sound'] != '':
+									player.hearing_map['sounds'].append(obj.noise_map['sound']) # Give the name of the sound.
+
+					#player.hearing_map = {}
 					player.noise_map = {}
 
 					turn = 'player_turn'
@@ -1129,6 +1163,7 @@ if __name__ == '__main__':
 
 # Ok, now we have to create another creature on which we will test this. done
 
-# After Noise, now add unique noise names for the creature - that way the player will be able to learn what monster makes what noises v - and then sneaking, knee health.
-# AND: don't show the noise in the message log - when player will be hearing many monsters, it will clog it, instead make so, that when player "looks" at noise indicator, it shows the noise name e.g - "it growls".
+# After Noise, now add unique noise names for the creature - that way the player will be able to learn what monster makes what noises v - and then sneaking, knee health. v
+# AND: don't show the noise in the message log - when player will be hearing many monsters, it will clog it, instead make so, that when player "looks" at noise indicator, it shows the noise name e.g - "it growls". v
 # And after that, it's time for light sources!
+# We have to optimize first...

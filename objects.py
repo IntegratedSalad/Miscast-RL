@@ -20,7 +20,7 @@ class Object(object):
 		self.item = item
 		self.block_sight = block_sight
 		self.sended_messages = []
-		self.noise_map = {'noise_map': '', 'source': '', 'sound': ''} # dictionary of noises
+		self.noise_map = {'noise_map': '', 'source': '', 'sound': ''} # dictionary of noises made by object
 		self.noises = {'move': (10, 10, 10), 'crouch': (2, 2, 1)} # LVL | RADIUS | FADE VALUE
 		self.sounds = {'sound_walk': '', 'sound_sneak': ''} # names of sounds
 		self.initial_light_radius = initial_light_radius # player is a light source variable for objects
@@ -174,6 +174,9 @@ class Fighter(object):
 		self.owner.block_sight = False
 		self.owner.blocks = False
 		self.owner.img = images[6] # instead, use specific image for every character and corpse stats overall
+		self.owner.noise_map = None
+		self.owner.noises = None
+		self.owner.sounds = None
 		self.owner.clear(self.owner.x, self.owner.y, _map)
 		field_of_view.fov_recalculate(fov_map, player_x, player_y, _map, radius=player_light_radius)
 		self.owner.sended_messages.append(self.owner.name.title() + " is dead.")
@@ -266,7 +269,7 @@ class NoiseAI(object):
 
 	def listen(self):
 		try:
-			got_noise_map = self.noise_map.get('noise_map')
+			got_noise_map = self.noise_map.get('noise_map') # It's hearing map.
 			if got_noise_map is not None: 
 				if (self.owner.x, self.owner.y) in got_noise_map.keys():
 					if self.hearing <= got_noise_map[(self.owner.x, self.owner.y)]:
@@ -289,7 +292,7 @@ class NoiseAI(object):
 		vision = self.use_eyes(fov_map, player.x, player.y)
 
 		if noise is not None:
-			print 'A NEW NOISE!' # hear will be the growl
+			print 'A NEW NOISE!'
 			self.destination = noise
 			self.investigating = True
 
@@ -308,7 +311,7 @@ class NoiseAI(object):
 			field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
 
 		if vision:
-			self.move_astar(_map, objects, (player.x, player.y), player)
+			self.move_astar(_map, objects, (player.x, player.y), player) # sees player
 
 		field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
 
@@ -453,17 +456,20 @@ def player_listen_to_noise(player):
 		noise_maps = player.hearing_map.get('noise_maps')
 		sources = player.hearing_map.get('sources')
 		sounds = player.hearing_map.get('sounds')
-		# add the "sound effect" | name of the noise
 		list_of_sources = []
 		list_of_sources_with_sounds = []
 
-		len_of_noises = len(noise_maps)
+
+		if noise_maps is not None:
+			len_of_noises = len(noise_maps)
+
+		else:
+			len_of_noises = 0
 
 		for x in range(len_of_noises):
 			noise_map = noise_maps[x]
 			source = sources[x]
 			sound = sounds[x]
-			# We have our noises and sources grouped
 			
 			if (player.x, player.y) in noise_maps[x].keys():
 				if player.hearing <= noise_map[(player.x, player.y)]:
@@ -480,9 +486,6 @@ def player_listen_to_noise(player):
 def player_hurt_or_heal_knees(player, _map):
 
 	max_knees = 10
-
-	#print max_knees, player.fighter.knees
-
 
 	if player.fighter.sneaking:
 		player.fighter.knees -= 0.5

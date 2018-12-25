@@ -37,9 +37,7 @@ def make_noise_map(x, y, level_map, radius, fade_value, top_noise_value):
             if level_map[int(round(_x))][int(round(_y))].block_sight:
                 penetrated_walls += 1
 
-                # break according to the fade_value
-
-                if penetrated_walls >= fade_value:
+                if penetrated_walls >= fade_value: # break according to the fade_value
                     break
 
             audible_places[(int(round(_x)), int(round(_y)))] = level
