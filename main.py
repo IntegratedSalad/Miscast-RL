@@ -525,8 +525,7 @@ class Game(object):
 							obj.fighter.manage_equipment()
 		
 						if obj.ai:
-							obj.ai.noise_map = player.noise_map # ITS NOISE MAP IS HEARING MAP AND IS DEALT IN listen() METHOD.
-							print player.noise_map
+							obj.ai.noise_map = player.noise_map # ITS NOISE MAP IS HEARING MAP AND IS DEALT IN listen() METHOD.S
 
 							obj.clear_messages() # clear messages - any previous messages are not up to date
 							obj.ai.take_turn(_map=self.map, fov_map=obj.fov_map, objects=self.objects, player=player)
