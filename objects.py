@@ -9,7 +9,7 @@ import utils
 
 class Object(object):
 
-	def __init__(self, x, y, img, name, blocks=False, block_sight=None, fighter=None, ai=None, item=None, initial_light_radius=0, initial_fov=0):
+	def __init__(self, x, y, img, name, blocks=False, block_sight=None, fighter=None, ai=None, item=None, initial_light_radius=0, initial_seeing_chance=0):
 		self.x = x
 		self.y = y
 		self.img = img
@@ -20,11 +20,14 @@ class Object(object):
 		self.item = item
 		self.block_sight = block_sight
 		self.sended_messages = []
-		self.noise_map = {'noise_map': '', 'source': '', 'sound': ''} # dictionary of noises made by object
-		self.noises = {'move': (10, 10, 10), 'crouch': (2, 2, 1)} # LVL | RADIUS | FADE VALUE
+		self.noise_made = {'range': 0, 'chance_to_be_heard': 0, 'source': '', 'sound_name': ''} 
+		self.heard_noises = []
+		#self.noises = {'move': (10, 10, 10), 'crouch': (2, 5, 1)} # LVL | RANGE | FADE VALUE
+		self.noises = {'move': (70, 8), 'crouch': (10, 5)} # CHANCE | RANGE
 		self.sounds = {'sound_walk': '', 'sound_sneak': ''} # names of sounds
 		self.initial_light_radius = initial_light_radius # player is a light source variable for objects
-		self.initial_fov = initial_fov # for monsters
+		self.initial_seeing_chance = initial_seeing_chance # for monsters
+		self.visibleness = 100 # useful when making traps
 		self.description =  '' # add multiple entries in dict
 
 		if self.fighter:
@@ -44,9 +47,17 @@ class Object(object):
 			self.x += dx
 			self.y += dy
 			if not self.fighter.sneaking:
-				self.make_noise(_map, self.noises['move'][0], self.noises['move'][1], self.noises['move'][2], self.sounds['sound_walk'])
+				# make this into a function
+				# source = self
+				self.noise_made['range'] = self.noises['move'][1]
+				self.noise_made['chance_to_be_heard'] = self.noises['move'][0]
+				self.noise_made['source'] = self
+				self.noise_made['sound_name'] = self.sounds['sound_walk']
 			else:
-				self.make_noise(_map, self.noises['crouch'][0], self.noises['crouch'][1], self.noises['crouch'][2], self.sounds['sound_sneak'])
+				self.noise_made['range'] = self.noises['crouch'][1]
+				self.noise_made['chance_to_be_heard'] = self.noises['crouch'][0]
+				self.noise_made['source'] = self
+				self.noise_made['sound_name'] = self.sounds['sound_sneak']
 		else:
 			for obj in objects:
 				if self.name != constants.PLAYER_NAME:
@@ -81,30 +92,6 @@ class Object(object):
 		self.item = None
 		self.img = None
 
-	def make_noise(self, _map, lvl, radius, fade_value, name):
-		noise = utils.make_noise_map(self.x, self.y, _map, radius, fade_value, lvl)
-
-		self.noise_map['noise_map'] = noise
-		self.noise_map['source'] = (self.x, self.y)
-		self.noise_map['sound'] = name
-
-	def player_hear_sound(self, sound):
-		final_text = "You hear: "
-
-		key = str(sound['key'])
-		data = sound['sound'][2]
-		text_sound = ""
-
-		for x in data:
-			if x.has_key(key):
-				text_sound = x[key]
-				break
-
-		final_text += text_sound
-
-		self.sended_messages.append(final_text)
-
-
 class Fighter(object):
 
 	# every being makes noise and can attack, have inventory
@@ -117,6 +104,12 @@ class Fighter(object):
 		self.equipment = []
 		self.sneaking = False
 		self.knees = 10 # knee health
+		# add modificators like hearing and chance depending on armor
+		self.modificators = {}
+
+
+		# Modificators will be values that can add, or subtract from chances.
+
 
 	@property
 	def max_light_radius(self):
@@ -258,42 +251,31 @@ class SimpleAI(object):
 class NoiseAI(object):
 
 	# make so that it for some turns remembers where is the player
-	def __init__(self, hearing, noise_map=None):
-		self.hearing = hearing
-		self.noise_map = noise_map
+	def __init__(self, hearing_chance):
 		self.destination = None
 		self.investigating = False
 		# it will only listen for player
 		# it gives chase to the place that he heard the sound coming from
 
 
-	def listen(self):
-		try:
-			got_noise_map = self.noise_map.get('noise_map') # It's hearing map.
-			if got_noise_map is not None: 
-				if (self.owner.x, self.owner.y) in got_noise_map.keys():
-					if self.hearing <= got_noise_map[(self.owner.x, self.owner.y)]:
-						return self.noise_map.get('source')
-					else:
-						return None
-		except AttributeError:
-			pass
-
-
-	def take_turn(self, _map, fov_map, objects, player):
+	def take_turn(self, _map, objects, player, fov_map):
 
 		# Listen
 		# Investigate
 		# If you are here and there's no player - wander
 		# Stop investigating only when you're at your target
 
-		field_of_view.cast_rays(self.owner.x, self.owner.y, fov_map, _map, self.owner.initial_fov)
-		noise = self.listen()
-		vision = self.use_eyes(fov_map, player.x, player.y)
+		# Monster's vision too demanding!
 
-		if noise is not None:
-			print 'A NEW NOISE!'
-			self.destination = noise
+
+		vision = None
+		#field_of_view.cast_rays(self.owner.x, self.owner.y, self.owner.fov_map, _map, self.owner.initial_fov)
+		#print self.owner.fov_map
+		vision = self.use_eyes(fov_map)
+
+
+		if self.destination is not None:
+			
 			self.investigating = True
 
 		if self.investigating and not vision:
@@ -303,24 +285,26 @@ class NoiseAI(object):
 
 		if not self.investigating and not vision:
 			# walk randomly
+
+
 			rand_dir_x = random.randint(-1, 1)
 			rand_dir_y = random.randint(-1, 1)
 
 			self.owner.move(rand_dir_x, rand_dir_y, _map, fov_map, objects)
 
-			field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
+			#field_of_view.fov_recalculate(self.owner.fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
 
 		if vision:
 			self.move_astar(_map, objects, (player.x, player.y), player) # sees player
 
-		field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
+		#field_of_view.fov_recalculate(self.owner.fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
 
 		#print "INVESTIGATING: {0} SEEING: {1}".format(self.investigating, vision)
 
 
 	def investigate(self, fov_map, _map, objects, goal, player):
 		process = self.move_astar(_map, objects, goal, player)
-		field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
+		#field_of_view.fov_recalculate(self.owner.fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
 		return process
 
 	def move_astar(self, _map, objects, goal, player):
@@ -338,7 +322,8 @@ class NoiseAI(object):
 		monster_path = libtcod.path_new_using_map(fov, 1.41)
 		libtcod.path_compute(monster_path, self.owner.x, self.owner.y, goal[0], goal[1])
 
-		if not libtcod.path_is_empty(monster_path) and libtcod.path_size(monster_path) < 100:
+
+		if not libtcod.path_is_empty(monster_path) and libtcod.path_size(monster_path) < 25:
 			x, y = libtcod.path_walk(monster_path, True)
 
 			if x or y:
@@ -363,9 +348,13 @@ class NoiseAI(object):
 
 			self.owner.move(dx, dy, _map, fov_map, objects)	
 
-	def use_eyes(self, fov_map, target_x, target_y):
-		if fov_map[target_x][target_y] != 1: 
+	def use_eyes(self, fov_map):
+
+		# add random chance based off of the monster's vision
+
+		if fov_map[self.owner.x][self.owner.y] != 1: 
 			return False
+
 		return True
 
 class Item(object):
@@ -449,7 +438,7 @@ class Equipment(object):
 		self.activated = False
 		user.sended_messages.append("{0}'s {1} {2}.".format(user.name.title(), eq_name.title(), self.wear_off_string))
 
-def player_listen_to_noise(player): 
+def player_listen_to_noise(player): #deprecated
 	
 	try:
 
@@ -471,11 +460,14 @@ def player_listen_to_noise(player):
 			source = sources[x]
 			sound = sounds[x]
 			
-			if (player.x, player.y) in noise_maps[x].keys():
-				if player.hearing <= noise_map[(player.x, player.y)]:
-					list_of_sources.append(source)
+			try:
+				if (player.x, player.y) in noise_maps[x].keys():
+					if player.hearing <= noise_map[(player.x, player.y)]:
+						list_of_sources.append(source)
 
-			list_of_sources_with_sounds.append({str(source): sound})
+				list_of_sources_with_sounds.append({str(source): sound})
+			except:
+				pass
 					
 		return list_of_sources, sounds, list_of_sources_with_sounds
 
@@ -499,5 +491,12 @@ def player_hurt_or_heal_knees(player, _map):
 
 def player_scream(player, _map):
 
-	player.make_noise(_map, 10, 500, 50, 'AW FUCK')
+	#player.make_noise(_map, 10, 500, 50, 'AW FUCK')
+
+
+	player.noise_made['range'] = 100
+	player.noise_made['chance_to_be_heard'] = 100
+	player.noise_made['source'] = player
+	player.noise_made['sound_name'] = "fuck"
+
 	player.sended_messages.append("You scream: 'AW FUCK MY KNEES!'")

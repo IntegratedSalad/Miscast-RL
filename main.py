@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import pygame
+#import cProfile
 import random
 import constants
 import field_of_view
@@ -102,7 +103,7 @@ class Game(object):
 
 		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
 				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG,
-				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG, 
+				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG,
 				ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG, goblin_IMG, magic_bell_IMG, noise_indicator_IMG]
 
 	def set_map(self):
@@ -135,10 +136,10 @@ class Game(object):
 		player_fighter_component = objects.Fighter(500, 3, 5)
 		# sprites in dict too
 		player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=3)
-		player.noises['move'] = (10, 10, 10)
 		player.description = constants.player_DESCRIPTION
-		player.hearing_map = {} # only player has hearing map
-		player.hearing = 1
+		player.fighter.modificators.update(constants.mods)
+		#player.fighter.modificators['mod_to_be_heard'] = -100
+		#player.hearing = 1 change to modificator
 		player.knee_health = 10
 
 		worm_AI = objects.SimpleAI()
@@ -149,25 +150,27 @@ class Game(object):
 		for n in range(constants.MAX_ENEMIES + 30):
 			mon_x = random.randint(1, constants.MAP_WIDTH - 1)
 			mon_y = random.randint(1, constants.MAP_HEIGHT - 1)
-			if self.map[mon_x][mon_y].block_sight or (mon_x, mon_y) == (player.x, player.y):  
+			if self.map[mon_x][mon_y].block_sight or (mon_x, mon_y) == (player.x, player.y):
 				continue
 			else:
-				gobleen_ai = objects.NoiseAI(hearing=1)
+				gobleen_ai = objects.NoiseAI(hearing_chance=60)
 				gobleen_fighter_component = objects.Fighter(25, 10, 10)
-				gobleen = objects.Object(mon_x, mon_y, self.images[25], 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component) # 2 7
+				gobleen = objects.Object(mon_x, mon_y, self.images[25], 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component, initial_seeing_chance=90) # 2 7
 				gobleen.sounds['sound_walk'] = "mumbling and shuffling."
+				gobleen.fighter.modificators.update(constants.mods)
 				self.objects.append(gobleen)
  
- 		abhorrent_creature_AI = objects.NoiseAI(hearing=1)
- 		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
-		abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI, initial_fov=3)
+		abhorrent_creature_AI = objects.NoiseAI(hearing_chance=100)
+		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
+		abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI, initial_seeing_chance=20)
 		abhorrent_creature.sounds['sound_walk'] = "deep low humming."
 		abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
+		abhorrent_creature.fighter.modificators.update(constants.mods)
 
-		goblin_AI = objects.NoiseAI(hearing=1)
-		goblin_fighter_component = objects.Fighter(25, 10, 10)
-		goblin = objects.Object(24, 11, self.images[25], 'Goblin', blocks=True, block_sight=True, fighter=goblin_fighter_component, ai=goblin_AI, initial_fov=5)
-		goblin.sounds['sound_walk'] = "mumbling and shuffling."
+		#goblin_AI = objects.NoiseAI(hearing=1)
+		#goblin_fighter_component = objects.Fighter(25, 10, 10)
+		#goblin = objects.Object(24, 11, self.images[25], 'Goblin', blocks=True, block_sight=True, fighter=goblin_fighter_component, ai=goblin_AI, initial_fov=5)
+		#goblin.sounds['sound_walk'] = "mumbling and shuffling."
 		# you hear...
 		#magic_bell = objects.Object(24, 11, self.images[26], 'Magic Bell', blocks=True, block_sight=True)
 		#second_magic_bell = objects.Object(24, 17, self.images[26], 'Magic Bell', blocks=True, block_sight=True)
@@ -235,7 +238,7 @@ class Game(object):
 		self.objects.append(great_steel_long_sword)
 		self.objects.append(lantern)
 		self.objects.append(oil)
-		self.objects.append(goblin)
+		#self.objects.append(goblin)
 		#self.objects.append(magic_bell)
 		#self.objects.append(second_magic_bell)
 
@@ -293,6 +296,7 @@ class Game(object):
 					return 'look'
 
 				if event.key == pygame.K_PERIOD:
+					player.noise_made = {'range': 0, 'chance_to_be_heard': 0, 'source': '', 'sound_name': ''} 
 					return 'took_turn'
 
 		return 'idle'
@@ -324,18 +328,18 @@ class Game(object):
 					self.drop_item_by_mouse(action['item_to_drop'])
 					return 'took_turn'
 
-		if area_Equipment.collidepoint(m_x, m_y): 
+		if area_Equipment.collidepoint(m_x, m_y):
 			action = self.handle_clicks(player.fighter.equipment)
-		
+
 			if action.has_key('item_to_use'):
-	
+
 				item = action['item_to_use']
-	
+
 				# activate special effects, which I am not going to implement now
 				# but the one that i WILL, will be light
 				self.pause_menu()
 
-				# here decide to use 
+				# here decide to use
 
 				equipment_piece = item.item.equipment
 
@@ -440,45 +444,14 @@ class Game(object):
 
 				if turn == 'player_turn':
 
-					#player.hearing_map['noise_maps'] = list()
-					#player.hearing_map['sources'] = list()
-					#player.hearing_map['sounds'] = list()
-
-					# make it into a function | use_ears()
-					#for obj in self.objects:
-					#	if obj != player:
-					#		if obj.noise_map['noise_map'] != '':
-					#			player.hearing_map['noise_maps'].append(obj.noise_map['noise_map'])
-#
-					#		if obj.noise_map['source'] != '':
-					#			player.hearing_map['sources'].append(obj.noise_map['source'])
-
-					#		if obj.noise_map['sound'] != '':
-					#			player.hearing_map['sounds'].append(obj.noise_map['sound'])
-
-
-
-					# HOW SOUNDS WORK:
-					# A) For Player:
-					# 	1. Each monster turn, player.hearing_map is resetted, and given every sound of monsters on map.
-					# 	2. player_listen_to_noise returns only that source, that he can hear.
-					# 	3. IN CASE OF THE NOISE MAP OF ENEMY, ITS NOISE MAP IS ITS HEARING MAP (when I tried to change naming of that, it was giving me error that i couldn't get rid of)
-					# 	4. When there is noise that player can hear - it is shown by self.ui.draw_noise_indicators(noises, self.fov_map).
-					# B) For Enemy:
-					#	1. player.noise_map is given to ai.noise map (hearing map)
-					#	2. listen() method is very similar to player_listen_to_noise, but it "listens" to only one source (because only player gives it its noise map)
-					#	3. Enemy investigates when the value that it can hear is in its hearing reach, and wanders randomly when it gets there, and the player isn't there.
-					#	4. When player is there, it gives chase.
- 
-
 
 					player_action = self.handle_keys()
 					mouse_action = self.handle_mouse()
 
-					noises = objects.player_listen_to_noise(player)
+					#noises = objects.player_listen_to_noise(player)
 
 					if player_action == 'look':
-						noises = objects.player_listen_to_noise(player)
+						noises = player.heard_noises
 						target = self.enter_look_mode("Look at what?", got_noise=noises)
 						if target is not None:
 							self.ui.draw_info_window(target, scr)
@@ -489,71 +462,103 @@ class Game(object):
 
 						objects.player_hurt_or_heal_knees(player, self.map)
 
-
-						# Show noise that player makes
-
-						#x = player.noise_map.get('noise_map')
-
-						#try:
-						#	if x is not None:
-						#		for key in x.keys():
-						#			_x = key[0] * constants.TILE_SIZE
-						#			_y = key[1] * constants.TILE_SIZE
-						#			scr.blit(self.images[0], (_x, _y))
-						#	pygame.display.flip()
-						#except AttributeError:
-						#	pass
-
 						self.listen_for_messagess(player)
 						turn = 'monster_turn'
 
 						# add manage_player function, where there will be all this everything that is done with player, and recovering knee health.
 
 				if turn == 'monster_turn':
+
+					player.heard_noises = dict()
+					player.heard_noises['monster_sounds'] = []
+
 					#magic_bell.make_noise(self.map, 10, 10, 10, 'Ding', 'Bell makes a noise')
 					#second_magic_bell.make_noise(self.map, 3, 10, 10, 'Ding', 'Bell makes a noise')
 
-					player.hearing_map['noise_maps'] = list()
-					player.hearing_map['sources'] = list()
-					player.hearing_map['sounds'] = list()
-
 					for obj in self.objects:
+
 
 						self.check_for_death(obj)
 
-						if obj.fighter:
-							obj.fighter.manage_equipment()
-		
 						if obj.ai:
-							obj.ai.noise_map = player.noise_map # ITS NOISE MAP IS HEARING MAP AND IS DEALT IN listen() METHOD.S
+							obj.fighter.manage_equipment()
+
+							#obj.ai.noise_map = player.noise_map # ITS NOISE MAP IS HEARING MAP AND IS DEALT IN listen() METHOD.
 
 							obj.clear_messages() # clear messages - any previous messages are not up to date
-							obj.ai.take_turn(_map=self.map, fov_map=obj.fov_map, objects=self.objects, player=player)
-		
+							obj.ai.take_turn(_map=self.map, objects=self.objects, player=player, fov_map=self.fov_map)
+
 							self.listen_for_messagess(obj)
 
-						if obj != player:
+							# Thrown rocks will be player's noise but with different source
 
-							if obj.noise_map is not None:
 
-								if obj.noise_map['noise_map'] != '':
-									player.hearing_map['noise_maps'].append(obj.noise_map['noise_map']) # Give every place, where the sound was.
 
-								if obj.noise_map['source'] != '':
-									player.hearing_map['sources'].append(obj.noise_map['source']) # Give the source of the sound.
+							# Make a function out of this (one function - can_hear(obj_one, obj_two, chances...))
 
-								if obj.noise_map['sound'] != '':
-									player.hearing_map['sounds'].append(obj.noise_map['sound']) # Give the name of the sound.
+							player_noise_range = player.noise_made['range']
+							player_noise_source = player.noise_made['source']
+							player_noise_chance = player.noise_made['chance_to_be_heard']
 
-					#player.hearing_map = {}
-					player.noise_map = {}
+							monster_noise_range = obj.noise_made['range']
+							monster_noise_source = obj.noise_made['source']
+							monster_noise_sound = obj.noise_made['sound_name']
+							monster_noise_chance = obj.noise_made['chance_to_be_heard']
+
+
+							#print player.noise_made
+
+							# monster hearing player
+							if utils.can_hear(obj, player, player_noise_range, player_noise_source, player_noise_chance):
+								print 'A NEW NOISE!'
+								obj.ai.destination = (player_noise_source.x, player_noise_source.y)
+
+
+							# player hearing monster
+
+							if utils.can_hear(player, obj, monster_noise_range, monster_noise_source, monster_noise_chance):
+								player.heard_noises['monster_sounds'].append((obj, monster_noise_sound))
+
+
+
+
+
+
+
+
+							# monster hearing player
+							#if player_noise_range > 0:
+							#	if obj.distance_to(player_noise_source) <= player_noise_range and obj.distance_to(player_noise_source) > 1:
+									# do the chance, it can be heard, but not have to.
+
+
+							#		chance = random.randint(0, 100)
+							#		print "CHANCE: {0} ACTUAL SCORE: {1}".format(str(player_noise_chance), chance)
+							#		if chance < player_noise_chance: # + obj.modificators['hearing']
+							#			obj.ai.destination = (player_noise_source.x, player_noise_source.y)
+
+									
+
+							# player hearing monster
+
+							#if monster_noise_range > 0 and player.distance_to(obj) <= monster_noise_range and player.distance_to(monster_source) > 1: # definitely player has a chance to hear monster
+							#		chance = random.randint(0, 100)
+							#		if chance < monster_noise_chance: # + player.modificators['hearing']
+
+								# if heard:
+							#			player.heard_noises['monster_sounds'].append((obj, monster_noise_sound))
+
+									# calculate chance
+
 
 					turn = 'player_turn'
 
+					player.noise_made = {'range': 0, 'chance_to_be_heard': 0, 'source': '', 'sound_name': ''} 
 				self.draw_all()
-				if noises: # move that to draw_all
-						# display "!"
-					self.ui.draw_noise_indicators(noises, self.fov_map)
+				if player.heard_noises: # move that to draw_all
+						# display "!";
+					noise_to_draw = [x[0] for x in player.heard_noises['monster_sounds']]
+					self.ui.draw_noise_indicators(noise_to_draw, self.fov_map)
 
 			fps = font.render("FPS: {0}".format(int(clock.get_fps())), False, WHITE)
 			scr.blit(fps, (0, 0))
@@ -575,7 +580,7 @@ class Game(object):
 				for y in range(0, 30):
 					_x = x * constants.TILE_SIZE
 					_y = y * constants.TILE_SIZE
-			
+
 					if self.fov_map[x][y] == 1:
 						if self.map[x][y].block_sight and self.map[x][y].is_map_structure:
 							scr.blit(self.images[1], (_x, _y))
@@ -629,7 +634,7 @@ class Game(object):
 		if player.fighter.hp <= 0:
 			player.img = self.images[6]
 			return 'game_over'
-		else: 
+		else:
 			return 'playing'
 
 	def show_game_over_demo(self):
@@ -668,7 +673,7 @@ class Game(object):
 		else:
 			to_delete = abs(len(self.messages) - 5)
 			del self.messages[:to_delete]
-			self.messages.extend(obj.sended_messages)			
+			self.messages.extend(obj.sended_messages)
 
 	def print_messages(self):
 		y = constants.SCREEN_SIZE_HEIGHT - 2
@@ -705,6 +710,9 @@ class Game(object):
 
 		noise = kwargs.get('got_noise')
 
+		noise_to_draw = [x[0] for x in noise['monster_sounds']]
+		#print noise_to_draw
+
 		x = player.x
 		y = player.y
 
@@ -738,10 +746,16 @@ class Game(object):
 							if (obj.x, obj.y) == (x, y) and (obj.fighter or obj.item) and self.fov_map[obj.x][obj.y] == 1:
 								return obj
 
-							if (obj.x, obj.y) == (x, y) and (obj.fighter or obj.item) and self.fov_map[obj.x][obj.y] != 1 and noise is not None: # sound
-								sound = {'sound': noise, 'key': (x, y)}
-								player.player_hear_sound(sound)
-								self.listen_for_messagess(player)
+							if (obj.x, obj.y) == (x, y) and obj.fighter and self.fov_map[obj.x][obj.y] != 1 and noise is not None: # sound
+
+								monsters = noise['monster_sounds']
+
+								for mon in monsters:
+
+									if obj == mon[0]:
+										player.sended_messages.append("You hear: {0}".format(mon[1]))
+										self.listen_for_messagess(player)
+										break
 						return None
 
 			self.draw_all()
@@ -749,43 +763,48 @@ class Game(object):
 			self.print_messages()
 			scr.blit(look_text, (0, 0))
 			if noise is not None:
-				self.ui.draw_noise_indicators(noise, self.fov_map)
+				self.ui.draw_noise_indicators(noise_to_draw, self.fov_map)
 			pygame.display.flip()
 
 	def draw_bresenham_line(self, x0, y0, x1, y1):
-	    "Bresenham's line algorithm - taken from: https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#Python"
-	
-	    line_img = font.render("*", False, WHITE)
-	
-	    dx = abs(x1 - x0)
-	    dy = abs(y1 - y0)
-	    x, y = x0, y0
-	    sx = -1 if x0 > x1 else 1
-	    sy = -1 if y0 > y1 else 1
-	
-	    if dx > dy:
-	    	err = dx / 2.0
-	    	while x != x1:
-	    		err -= dy
-	    		if err < 0:
-	    			y += sy
-	    			err += dx
-	    		x += sx
-	    		black_rect = pygame.Rect(x * constants.FONT_SIZE, y * constants.FONT_SIZE, 16, 16)
-	    		scr.fill(BLACK, black_rect)
-	    		scr.blit(line_img, (x * constants.FONT_SIZE, y * constants.FONT_SIZE))
-	    else:
-	    	err = dy / 2.0
-	    	while y != y1:
-	    		err -= dx
-	    		if err <0:
-	    			x += sx
-	    			err += dy
-	    		y += sy
+		"Bresenham's line algorithm - taken from: https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#Python"
 
-	    		black_rect = pygame.Rect(x * constants.FONT_SIZE, y * constants.FONT_SIZE, 16, 16)
-	    		scr.fill(BLACK, black_rect)
-	    		scr.blit(line_img, (x * constants.FONT_SIZE, y * constants.FONT_SIZE))
+		line_img = font.render("*", False, WHITE)
+
+		dx = abs(x1 - x0)
+		dy = abs(y1 - y0)
+		x, y = x0, y0
+		sx = -1 if x0 > x1 else 1
+		sy = -1 if y0 > y1 else 1
+
+		count = 0
+
+		if dx > dy:
+			err = dx / 2.0
+			while x != x1:
+				err -= dy
+				if err < 0:
+					y += sy
+					err += dx
+				x += sx
+
+				black_rect = pygame.Rect(x * constants.FONT_SIZE, y * constants.FONT_SIZE, 16, 16)
+				scr.fill(BLACK, black_rect)
+				scr.blit(line_img, (x * constants.FONT_SIZE, y * constants.FONT_SIZE))
+
+		else:
+			count = 0
+			err = dy / 2.0
+			while y != y1:
+				err -= dx
+				if err <0:
+					x += sx
+					err += dy
+				y += sy
+
+				black_rect = pygame.Rect(x * constants.FONT_SIZE, y * constants.FONT_SIZE, 16, 16)
+				scr.fill(BLACK, black_rect)
+				scr.blit(line_img, (x * constants.FONT_SIZE, y * constants.FONT_SIZE))
 
 
 class UI(object):
@@ -796,7 +815,7 @@ class UI(object):
 		self.inv_start_pos_x = constants.INVENTORY_ITEMS_START_X * constants.FONT_SIZE
 		self.inv_start_pos_y = constants.INVENTORY_ITEMS_START_Y * constants.FONT_SIZE
 
-		self.inventory_places = [[y, x, None] for y in range(constants.INVENTORY_ITEMS_START_Y, constants.INVENTORY_PLACES_HEIGHT + constants.INVENTORY_ITEMS_START_Y) 
+		self.inventory_places = [[y, x, None] for y in range(constants.INVENTORY_ITEMS_START_Y, constants.INVENTORY_PLACES_HEIGHT + constants.INVENTORY_ITEMS_START_Y)
 											  for x in range(constants.INVENTORY_ITEMS_START_X, constants.INVENTORY_PLACES_WIDTH + constants.INVENTORY_ITEMS_START_X)]
 
 		self.inventory_rect = pygame.Rect(constants.INVENTORY_ITEMS_START_X * constants.FONT_SIZE, constants.INVENTORY_ITEMS_START_Y * constants.FONT_SIZE,
@@ -855,13 +874,13 @@ class UI(object):
 
 			x = (start_x + (width / 2)  - (title_len / 2)) * constants.FONT_SIZE
 			y = start_y * constants.TILE_SIZE + 4
-		
+
 			if title_even:
 				black_rect = pygame.Rect(x, y, title_len * constants.FONT_SIZE, constants.FONT_SIZE - 5)
 
 			else:
 				black_rect = pygame.Rect(x, y, (title_len - 1) * constants.FONT_SIZE, constants.FONT_SIZE - 5)
-			
+
 			scr.fill(BLACK, rect=black_rect)
 
 			x = (black_rect.centerx - (title_len * constants.FONT_SIZE) / 4)
@@ -1058,17 +1077,20 @@ class UI(object):
 
 	def draw_noise_indicators(self, noises, fov):
 
-		sources = noises[0]
+		sources = noises
 
 		try:
 
 			for noise in sources:
 
 				icon = self.images[27]
-				x = noise[0]
-				y = noise[1]
+				x = noise.x
+				y = noise.y
 
-				if fov[noise[0]][noise[1]] != 1:
+
+				#print x, y
+
+				if fov[x][y] != 1:
 					scr.blit(icon, (x * constants.TILE_SIZE, y * constants.TILE_SIZE))
 
 		except IndexError:
@@ -1084,6 +1106,7 @@ def main():
 	game.run()
 
 if __name__ == '__main__':
+	#cProfile.run('main()')
 	main()
 
 
@@ -1109,8 +1132,8 @@ if __name__ == '__main__':
 # Smoke - a place that blocks sight but not movement
 # Walking carefully - sneaking (crouching) Done, know I need to make the player scream if he crouches for too long. ("Pysio's legs hurt!")
 # If monster is making noise detectable to player, blit an quesiton mark in the position he did the noise for a couple of turns DONE <- noise can be heard multiple times
-# Noise (done by player) represented by exclamation marks : [!!!!!!!!!!!!] (Range, and with colors: level) (Level indicates how piercing through the walls it is, how many walls can it pierce till it fades)
-# Monster's vision. DONE
+# Noise (done by player) represented by exclamation marks : [!!!!!!!!!!!!] (Range, and with colors: level) (Level indicates how piercing through the walls it is, how many walls can it pierce till it fades) <- too demanding
+# Monster's vision. DONE, too demanding!!! (by computer)
 # Below 25 level of depth, abhorrent creatures will spawn and it will be necessary to crouch and sneak.
 # To show what player has already explored, make new item called magic map, that will be taking notes automatically
 
@@ -1151,7 +1174,11 @@ if __name__ == '__main__':
 
 # Make enemies that drop special items and special branches! for example: portal to the shadow realm with monster that drops scroll that can stun evil demons for 10 rounds.
 # And with all that, keep the mystery and narrative theme going on. (Not shadow realm, but "you step into the portal, swirling and shaking you transmigrate beyond the realms of worlds!")
+# When overburdened, player might tumble and make noise
 
+
+
+# V - Deprecated
 # Noise AI (Mechanic: the lower (lvl) the noise detected, the better the hearing is):
 # 1. Monster has it's own fov map and Level Of Hearing, that is: WHICH LEVEL of noise monster can detect. (If it has good hearing, he can detect low levels of noise) done
 # 2. The object that emits sound has: Max level of sound that can be created and range of that sound. done
@@ -1161,9 +1188,32 @@ if __name__ == '__main__':
 # 6. Sneaking is a good option, but it hurts your ankles. (If used too much, player will scream)
 # 7. Sound is made: "fov" of sound traverses with it's own properties, hitting walls, fades etc.: Hits monster that can hear it: Monster goes to sound source. done
 
+
+# New noise AI: Done
+#	1. Check if the algorithm will not be slow:
+#	 a) Measure the distance between obj and another obj - if it's less or equal than the minimum range then the noise might be heard; proceed to throw random chance. -!draw bresenham line!-.
+#	 b) Get rid of noise map - only check whether there was a sound and iterate over every enemy checking its distance first!
+# Done
+
 # Ok, now we have to create another creature on which we will test this. done
 
 # After Noise, now add unique noise names for the creature - that way the player will be able to learn what monster makes what noises v - and then sneaking, knee health. v
 # AND: don't show the noise in the message log - when player will be hearing many monsters, it will clog it, instead make so, that when player "looks" at noise indicator, it shows the noise name e.g - "it growls". v
 # And after that, it's time for light sources!
-# We have to optimize first...
+# We have to optimize first... done
+# Learn profiling.
+
+
+
+# Too demanding:
+
+# Noise map
+# Monsters own fov map
+
+# Way to hop over it: random chance <- add random chance to vision of monsters too!
+# Modificators - they add or subtract to chances:
+
+# 1. Seeing (e.g + 10)
+# 2. Hearing (e.g - 20)
+# 3. Chance to bee heard
+# 4. Chance to be seen - with lantern it's 100

@@ -94,3 +94,15 @@ ABHORRENT_CREATURE_MAX_HP = 100 # start hp
 
 player_DESCRIPTION = "What did I do to deserve this?" # Make it vary with mood and health.
 abhorrent_creature_DESCRIPTION = "What is this?! Hope it doesn't hear me..."
+
+# modificators:
+
+
+mods = {
+	
+		'mod_to_be_seen': 0,
+		'mod_to_seeing': 0,
+		'mod_to_be_heard': 0, # negative values decrease chance
+		'mod_to_hearing': 0,
+		
+	   }
