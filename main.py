@@ -1125,19 +1125,17 @@ if __name__ == '__main__':
 # Step 2: - Core mechanics that will seperate my game from others
 # Lantern v and torches - increasing fov v refilling v - lantern is given at the beginning with one extra oil, and no lantern is spawned during the game
 # Lantern makes player more visible. <- Very important
-# Objects that emit light. - they will augment the vision when seen
 # Optimise code - make functions more general, input processing etc... and then: (the most important change i could add from that point is event queue - decide what is done in what order)
 # Noise AI - possible need for an A* algorithm DONE
-# Making noise, noise mechanic - either by shouting, tumbling over or throwing
-# Smoke - a place that blocks sight but not movement
-# Walking carefully - sneaking (crouching) Done, know I need to make the player scream if he crouches for too long. ("Pysio's legs hurt!")
+# Making noise, noise mechanic - either by shouting, tumbling over! or throwing!
+# Walking carefully - sneaking (crouching) Done, know I need to make the player scream if he crouches for too long. ("Pysio's legs hurt!") done
 # If monster is making noise detectable to player, blit an quesiton mark in the position he did the noise for a couple of turns DONE <- noise can be heard multiple times
 # Noise (done by player) represented by exclamation marks : [!!!!!!!!!!!!] (Range, and with colors: level) (Level indicates how piercing through the walls it is, how many walls can it pierce till it fades) <- too demanding
 # Monster's vision. DONE, too demanding!!! (by computer)
 # Below 25 level of depth, abhorrent creatures will spawn and it will be necessary to crouch and sneak.
 # To show what player has already explored, make new item called magic map, that will be taking notes automatically
-
-# After step 2 demo
+# Couple of new enemies, equipment
+# Demo version - 7 levels, and a portal to escape
 
 # Step 3: - Polishing and roguelike elements such as permadeath, levels as well as menu etc.
 # Spawning player randomly, in way which he does not spawn in walls
@@ -1199,7 +1197,7 @@ if __name__ == '__main__':
 
 # After Noise, now add unique noise names for the creature - that way the player will be able to learn what monster makes what noises v - and then sneaking, knee health. v
 # AND: don't show the noise in the message log - when player will be hearing many monsters, it will clog it, instead make so, that when player "looks" at noise indicator, it shows the noise name e.g - "it growls". v
-# And after that, it's time for light sources!
+# And after that, it's time for light sources! - chance to be seen, i don't know if it's a good idea, beside chance to seing in NoiseAI
 # We have to optimize first... done
 # Learn profiling.
 
@@ -1217,3 +1215,9 @@ if __name__ == '__main__':
 # 2. Hearing (e.g - 20)
 # 3. Chance to bee heard
 # 4. Chance to be seen - with lantern it's 100
+
+
+
+# Next: Chance to seeing in NoiseAI
+#		Throwing 
+#		Calculated chance of hearing from armour

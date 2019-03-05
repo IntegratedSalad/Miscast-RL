@@ -100,6 +100,8 @@ abhorrent_creature_DESCRIPTION = "What is this?! Hope it doesn't hear me..."
 
 mods = {
 	
+
+		# Decrease or increase percentage chance
 		'mod_to_be_seen': 0,
 		'mod_to_seeing': 0,
 		'mod_to_be_heard': 0, # negative values decrease chance

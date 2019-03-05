@@ -49,6 +49,7 @@ class Object(object):
 			if not self.fighter.sneaking:
 				# make this into a function
 				# source = self
+				# sum modificators from armour
 				self.noise_made['range'] = self.noises['move'][1]
 				self.noise_made['chance_to_be_heard'] = self.noises['move'][0]
 				self.noise_made['source'] = self
@@ -60,6 +61,7 @@ class Object(object):
 				self.noise_made['sound_name'] = self.sounds['sound_sneak']
 		else:
 			for obj in objects:
+				# add noises of battle
 				if self.name != constants.PLAYER_NAME:
 					if (self.x + dx == obj.x and self.y + dy == obj.y) and obj.fighter is not None and self.fighter is not None and obj.name == constants.PLAYER_NAME:
 						self.fighter.attack(obj)
@@ -350,7 +352,7 @@ class NoiseAI(object):
 
 	def use_eyes(self, fov_map):
 
-		# add random chance based off of the monster's vision
+		# add random chance based off of the monster's vision and player's clothing
 
 		if fov_map[self.owner.x][self.owner.y] != 1: 
 			return False
