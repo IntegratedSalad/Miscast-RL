@@ -13,7 +13,7 @@ def heal(**kwargs):
 		target.fighter.hp += heal_val
 		if target.fighter.hp > target.fighter.max_hp: target.fighter.hp = target.fighter.max_hp
 
-		heal_message = "{0} was healed for {1}".format(target.name.title(), heal_val)
+		heal_message = "{0} was healed for {1}.".format(target.name.title(), heal_val)
 		target.sended_messages.append(heal_message)
 		return 'used'
 
@@ -25,12 +25,15 @@ def heal(**kwargs):
 def instant_death(**kwargs):
 
 	target = kwargs.get('target')
+	user = kwargs.get('user')
 
 	if target.fighter:
 		target.fighter.hp = 0
 
 		target.sended_messages.append("Vile force is about to be unleashed on earth!")
 		target.sended_messages.append('{0} dies a horrible death!'.format(target.name.title()))
+
+		user.sended_messages.append("You hear someone reetching violently.")
 
 		return 'used'
 
@@ -64,22 +67,36 @@ def equip(**kwargs):
 	item = kwargs.get('item')
 	UI = kwargs.get('UI')
 
-	if UI.add_item_to_equipment_slot(item):
+	if target.name == constants.PLAYER_NAME:
+
+		if UI.add_item_to_equipment_slot(item):
+			target.fighter.equipment.append(item)
+			target.sended_messages.append("{0} wears {1}.".format(target.name.title(), item.name.title()))
+			return 'used'
+		else:
+			target.sended_messages.append("You already have something in this slot, you have to")
+			target.sended_messages.append("remove it first.")
+			return 'cancelled'
+
+	else:
+
+		slot = item.item.equipment.slot 
+		for piece in target.fighter.equipment:
+			if slot == piece.item.equipment.slot:
+				target.fighter.inventory.append(item) # Warning: AI must NOT decide to wear something on the same slot!
+				return 'cancelled'
 
 		target.fighter.equipment.append(item)
 		target.sended_messages.append("{0} wears {1}.".format(target.name.title(), item.name.title()))
 		return 'used'
-	else:
-		target.sended_messages.append("You already have something in this slot, you have to")
-		target.sended_messages.append("remove it first.")
-		return 'cancelled'
+
 
 def light_lantern(**kwargs):
 
 	item = kwargs.get('item')
 	user = kwargs.get('user')
 
-	user.sended_messages.append("{0} lits Lantern.".format(user.name.title()))
+	user.sended_messages.append("{0} lits lantern.".format(user.name.title()))
 
 	return 'activated'
 

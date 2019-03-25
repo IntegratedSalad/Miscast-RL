@@ -22,7 +22,6 @@ class Object(object):
 		self.sended_messages = []
 		self.noise_made = {'range': 0, 'chance_to_be_heard': 0, 'source': '', 'sound_name': ''} 
 		self.heard_noises = []
-		#self.noises = {'move': (10, 10, 10), 'crouch': (2, 5, 1)} # LVL | RANGE | FADE VALUE
 		self.noises = {'move': (70, 8), 'crouch': (10, 5)} # CHANCE | RANGE
 		self.sounds = {'sound_walk': '', 'sound_sneak': ''} # names of sounds
 		self.initial_light_radius = initial_light_radius # player is a light source variable for objects
@@ -51,7 +50,7 @@ class Object(object):
 				# source = self
 				# sum modificators from armour
 				self.noise_made['range'] = self.noises['move'][1]
-				self.noise_made['chance_to_be_heard'] = self.noises['move'][0]
+				self.noise_made['chance_to_be_heard'] = self.noises['move'][0] # + armor
 				self.noise_made['source'] = self
 				self.noise_made['sound_name'] = self.sounds['sound_walk']
 			else:
@@ -97,7 +96,7 @@ class Object(object):
 class Fighter(object):
 
 	# every being makes noise and can attack, have inventory
-	def __init__(self, hp, initial_attack_stat, initial_defense_stat, special_attack_fn=None): # make it not that straightforward, add chances to stun, chances to miss etc.
+	def __init__(self, hp, initial_attack_stat, initial_defense_stat, special_attack_fn=None, class_type=None): # make it not that straightforward, add chances to stun, chances to miss etc.
 		self.starting_max_hp = hp
 		self.hp = hp
 		self.initial_attack_stat = initial_attack_stat
@@ -109,9 +108,7 @@ class Fighter(object):
 		# add modificators like hearing and chance depending on armor
 		self.modificators = {}
 
-
 		# Modificators will be values that can add, or subtract from chances.
-
 
 	@property
 	def max_light_radius(self):
@@ -140,7 +137,6 @@ class Fighter(object):
 			bonus += piece.item.equipment.max_health_bonus
 		return self.starting_max_hp + bonus
 
-
 	@property
 	def defense_stat(self):
 		bonus = 0
@@ -148,16 +144,70 @@ class Fighter(object):
 			bonus += piece.item.equipment.defence_bonus
 		return self.initial_attack_stat + bonus
 
+	@property
+	def burden(self): # if weight will be too high, player will scream | items worn are 1.3 times heavier | Add calculations that decrease weight depending on player's strength
+
+		val = 0
+
+		for piece in self.equipment:
+			val += piece.item.weight * 1.3
+
+		for piece in self.inventory:
+			val += piece.item.weight
+
+
+		return val
+
+	@property
+	def armor_to_be_heard_modificator(self):
+		bonus_chance = 0
+		for piece in self.equipment:
+			bonus_chance += piece.item.equipment.chance_to_be_heard_modificator # make this as an argument to an generic function - "add to a modificator"
+
+		return bonus_chance
+
+	@property
+	def armor_to_be_seen_modificator(self):
+		bonus_chance = 0
+		for piece in self.equipment:
+			bonus_chance += piece.item.equipment.chance_to_be_seen_modificator
+
+		return bonus_chance
+
+	@property
+	def armor_to_see_modificator(self):
+		bonus_chance = 0
+		for piece in self.equipment:
+			bonus_chance += piece.item.equipment.chance_to_see_modificator
+
+		return bonus_chance
+
+	@property
+	def armor_to_hear_modificator(self):
+		bonus_chance = 0
+		for piece in self.equipment:
+			bonus_chance += piece.item.equipment.chance_to_hear_modificator
+
+		return bonus_chance
+
 
 	def attack(self, target):
 
-		attack_value = random.randint(0, self.attack_stat) + random.randint(0, self.initial_attack_stat) # miss cannot be included in damage, if damage == 0 -> "but does no damage"
+		#make miss a random chance, not 0 - if it stays that way, even the most of the powerful creatures will deal 1 damage
+
+		attack_value = random.randint(((self.initial_attack_stat + self.attack_stat) - random.randint(1, self.initial_attack_stat - 1)), self.initial_attack_stat + self.attack_stat) + random.randint(0, self.initial_attack_stat) # miss cannot be included in damage, if damage == 0 -> "but does no damage"
 
 		attack_value = attack_value - (target.fighter.defense_stat / 2)
 
-		if attack_value > 0:
-			target.fighter.hp -= attack_value
-			mess = "{0} attacks {1} and deals {2} dmg!".format(self.owner.name.title(), target.name.title(), attack_value)
+		miss = random.randint(0, 100) < 3 # miss chance 
+
+		if not miss:
+
+			if attack_value > 0:
+				target.fighter.hp -= attack_value
+				mess = "{0} attacks {1} and deals {2} dmg!".format(self.owner.name.title(), target.name.title(), attack_value)
+			else:
+				mess = "{0} attack bounces off.".format(self.owner.name.title())
 		else:
 			mess = "{0} attacks {1} and misses!".format(self.owner.name.title(), target.name.title())
 
@@ -203,6 +253,9 @@ class Fighter(object):
 			if eq.item.equipment.activation_func is not None:
 				eq.item.equipment.wear_off(self.owner, eq.name)
 
+		if self.is_overburdened():
+			self.knees = -0.1
+
 	def sneak(self):
 		if not self.sneaking:
 			self.sneaking = True
@@ -210,6 +263,10 @@ class Fighter(object):
 		else:
 			self.sneaking = False
 			self.owner.sended_messages.append("You stand up.")
+
+	def is_overburdened(self):
+		#print self.burden
+		return self.burden > 50 # some number
 
 
 class SimpleAI(object):
@@ -246,7 +303,7 @@ class SimpleAI(object):
 
 
 	def target_enemy():
-		# instead of always choosing player, it will have a better usability
+		# instead of always choosing player, it will have a better usability <- between monster fighting is a tough mechanic to pull off
 		pass
 
 
@@ -264,16 +321,14 @@ class NoiseAI(object):
 
 		# Listen
 		# Investigate
-		# If you are here and there's no player - wander
+		# If you are here and there's no player - wander.
 		# Stop investigating only when you're at your target
 
 		# Monster's vision too demanding!
 
 
 		vision = None
-		#field_of_view.cast_rays(self.owner.x, self.owner.y, self.owner.fov_map, _map, self.owner.initial_fov)
-		#print self.owner.fov_map
-		vision = self.use_eyes(fov_map)
+		vision = self.use_eyes(fov_map, player)
 
 
 		if self.destination is not None:
@@ -283,11 +338,13 @@ class NoiseAI(object):
 		if self.investigating and not vision:
 			result = self.investigate(fov_map, _map, objects, self.destination, player)
 			if (result == 'reached'):
+				#print 'i reached'
 				self.investigating = False
+				self.destination = None
 
 		if not self.investigating and not vision:
+			#print "not investigating and not vision"
 			# walk randomly
-
 
 			rand_dir_x = random.randint(-1, 1)
 			rand_dir_y = random.randint(-1, 1)
@@ -324,7 +381,6 @@ class NoiseAI(object):
 		monster_path = libtcod.path_new_using_map(fov, 1.41)
 		libtcod.path_compute(monster_path, self.owner.x, self.owner.y, goal[0], goal[1])
 
-
 		if not libtcod.path_is_empty(monster_path) and libtcod.path_size(monster_path) < 25:
 			x, y = libtcod.path_walk(monster_path, True)
 
@@ -333,7 +389,7 @@ class NoiseAI(object):
 
 				self.move_to_target(_map, fov, objects, x, y) 
 
-				if utils.non_obj_distance_to((goal[0], goal[1]), self.owner.x, self.owner.y) < 1:
+				if utils.non_obj_distance_to((goal[0], goal[1]), self.owner.x, self.owner.y) < player.initial_light_radius:
 					return 'reached'
 
 
@@ -350,22 +406,22 @@ class NoiseAI(object):
 
 			self.owner.move(dx, dy, _map, fov_map, objects)	
 
-	def use_eyes(self, fov_map):
-
-		# add random chance based off of the monster's vision and player's clothing
+	def use_eyes(self, fov_map, player):
 
 		if fov_map[self.owner.x][self.owner.y] != 1: 
 			return False
 
-		return True
+		if utils.can_see(player.fighter.modificators["mod_to_be_seen"] + player.fighter.armor_to_be_seen_modificator, self.owner.fighter.modificators["mod_to_seeing"]) + self.owner.fighter.armor_to_see_modificator:
+			return True
 
 class Item(object):
-	def __init__(self, use_func=None, equipment=None, can_break=False, targetable=False, **kwargs):
+	def __init__(self, use_func=None, equipment=None, can_break=False, targetable=False, weight=0, **kwargs):
 		self.use_func = use_func
 		self.can_break = can_break
 		self.targetable = targetable
 		self.equipment = equipment
 		self.kwargs = kwargs
+		self.weight = weight
 
 		if self.equipment:
 			self.equipment.owner = self
@@ -376,7 +432,7 @@ class Item(object):
 		user = kwargs.get('user')
 		ui = kwargs.get('UI')
 
-		print str(user) + ": USER"
+		#print str(user.name) + ": USER"
 
 		kwargs.update(self.kwargs)
 
@@ -386,8 +442,10 @@ class Item(object):
 				# remove from obj inventory
 				if user.fighter.hp > 0:
 					ui.remove_item_from_UI(self.owner.x, self.owner.y)
-					user.fighter.inventory.remove(self.owner)
-					# add noise value to the effect if item
+					try:
+						user.fighter.inventory.remove(self.owner)
+					except ValueError:
+						pass # it already has been removed 
 			else:
 				return 'cancelled'
 		else:
@@ -396,7 +454,7 @@ class Item(object):
 
 class Equipment(object):
 
-	def __init__(self, slot, power_bonus=0, defence_bonus=0, equipment_effect=None, max_health_bonus=0, light_radius_bonus=0, charges=0, activated=False, activation_func=None, deactivation_string="", wear_off_string="", **kwargs):
+	def __init__(self, slot, power_bonus=0, defence_bonus=0, equipment_effect=None, max_health_bonus=0, light_radius_bonus=0, charges=0, activated=False, activation_func=None, deactivation_string="", wear_off_string="", chance_to_be_heard_modificator=0, chance_to_be_seen_modificator=0, chance_to_hear_modificator=0, chance_to_see_modificator=0, **kwargs):
 		self.slot = slot
 		self.power_bonus = power_bonus
 		self.defence_bonus = defence_bonus
@@ -409,6 +467,10 @@ class Equipment(object):
 		self.activation_func = activation_func
 		self.deactivation_string = deactivation_string # Must be a verb
 		self.wear_off_string = wear_off_string # Must be a verb too
+		self.chance_to_be_heard_modificator = chance_to_be_heard_modificator
+		self.chance_to_be_seen_modificator = chance_to_be_seen_modificator
+		self.chance_to_hear_modificator = chance_to_hear_modificator
+		self.chance_to_see_modificator = chance_to_see_modificator
 		self.kwargs = kwargs
 
 	def activate(self, **kwargs):
@@ -440,46 +502,22 @@ class Equipment(object):
 		self.activated = False
 		user.sended_messages.append("{0}'s {1} {2}.".format(user.name.title(), eq_name.title(), self.wear_off_string))
 
-def player_listen_to_noise(player): #deprecated
-	
-	try:
 
-		noise_maps = player.hearing_map.get('noise_maps')
-		sources = player.hearing_map.get('sources')
-		sounds = player.hearing_map.get('sounds')
-		list_of_sources = []
-		list_of_sources_with_sounds = []
+class Container(object): # to have more loot in one place
+	pass
 
+class SpellBook(object):
+	pass
 
-		if noise_maps is not None:
-			len_of_noises = len(noise_maps)
-
-		else:
-			len_of_noises = 0
-
-		for x in range(len_of_noises):
-			noise_map = noise_maps[x]
-			source = sources[x]
-			sound = sounds[x]
-			
-			try:
-				if (player.x, player.y) in noise_maps[x].keys():
-					if player.hearing <= noise_map[(player.x, player.y)]:
-						list_of_sources.append(source)
-
-				list_of_sources_with_sounds.append({str(source): sound})
-			except:
-				pass
-					
-		return list_of_sources, sounds, list_of_sources_with_sounds
-
-	except IndexError:
-		pass
-
+class Portal(object):
+	pass	
 
 def player_hurt_or_heal_knees(player, _map):
 
 	max_knees = 10
+
+	print player.fighter.is_overburdened()
+	print player.fighter.knees
 
 	if player.fighter.sneaking:
 		player.fighter.knees -= 0.5
@@ -488,16 +526,14 @@ def player_hurt_or_heal_knees(player, _map):
 		#print 'dd'
 		player.fighter.knees += 0.1
 
-	if player.fighter.knees <= 0 and player.fighter.sneaking:
+	if (player.fighter.knees <= 0 and player.fighter.sneaking) or (player.fighter.knees <= 0 and player.fighter.is_overburdened):
+		print 'dupsko'
 		player_scream(player, _map)
 
 def player_scream(player, _map):
 
-	#player.make_noise(_map, 10, 500, 50, 'AW FUCK')
-
-
 	player.noise_made['range'] = 100
-	player.noise_made['chance_to_be_heard'] = 100
+	player.noise_made['chance_to_be_heard'] = 1000
 	player.noise_made['source'] = player
 	player.noise_made['sound_name'] = "fuck"
 

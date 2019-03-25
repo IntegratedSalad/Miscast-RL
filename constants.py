@@ -3,6 +3,9 @@
 
 """
 
+title = "RL"
+version = "0.27"
+
 # SCREEN AND MAP
 MAP_WIDTH = 30
 MAP_HEIGHT = 30
@@ -54,6 +57,7 @@ UI_AMULET_SLOT = (START_INFORMATION_BOX_X + 7, START_INFORMATION_BOX_Y + 3) # AM
 UI_ACCESSORY_SLOT = (START_INFORMATION_BOX_X + 8, START_INFORMATION_BOX_Y + 10) # ACCESSORY
 UI_RIGHT_RING_SLOT = (START_INFORMATION_BOX_X + 7, START_INFORMATION_BOX_Y + 8) # RIGHT_RING
 UI_LEFT_RING_SLOT = (START_INFORMATION_BOX_X + 3, START_INFORMATION_BOX_Y + 8) # LEFT_RING
+UI_CLOAK_SLOT = (START_INFORMATION_BOX_X + (12 / 2)-1, START_INFORMATION_BOX_Y + 5) # CLOAK
 
 # Enemies - map settings
 MAX_ENEMIES = 15
@@ -70,8 +74,8 @@ IMAGES_INDEX_ABHORRENT_CREATURE = 5
 IMAGES_POTION_HP = 13
 IMAGES_SCROLL_OF_DEATH = 14
 
-# Monster stats
 
+#Player stats
 
 PLAYER_NAME = 'pysio'
 PLAYER_START_HP = 20
@@ -84,11 +88,11 @@ player = {
 
 
 		}
+
+# Monster stats
 WORM_MAX_HP = 3
 ABHORRENT_CREATURE_MAX_HP = 100 # start hp
 # move here all the messages
-
-
 
 # DESCRIPIONS
 
@@ -99,7 +103,6 @@ abhorrent_creature_DESCRIPTION = "What is this?! Hope it doesn't hear me..."
 
 
 mods = {
-	
 
 		# Decrease or increase percentage chance
 		'mod_to_be_seen': 0,

@@ -126,6 +126,7 @@ def reset_fov(fov_map):
 
 def is_in_fov(fov_map, obj):
 
+    #print obj.name
     if fov_map[obj.x][obj.y] == 1: return True
     else: return False
  

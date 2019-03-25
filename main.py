@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import pygame
-#import cProfile
 import random
 import constants
 import field_of_view
@@ -19,7 +18,7 @@ RED = (219, 0, 0)
 GREEN = (3, 172, 37)
 PALE = (172, 112, 100)
 
-class Game(object):
+class Game(object): # move this to objects
 
 	def __init__(self, state=None):
 		self.state = state
@@ -31,6 +30,8 @@ class Game(object):
 		self.messages_history = []
 		self.messages = []
 		self.ui = None
+		self.world = "Dungeon" # to keep the track of worlds
+		self.level = 1
 
 	def take_raw_map(self):
 		map_list = []
@@ -84,6 +85,7 @@ class Game(object):
 		scroll_of_death_IMG = scrolls_SPRITES.image_at((5 * constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		scroll_of_uncontrolled_teleportation_IMG = scrolls_SPRITES.image_at((4 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		oil_IMG = potions_SPRITES.image_at((2 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+		potion_of_death_IMG = potions_SPRITES.image_at((0, constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 
 
 		iron_sword_IMG = medium_weapons_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
@@ -92,6 +94,7 @@ class Game(object):
 		bronze_armor_IMG = armor_SPRITES.image_at((0, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		crystal_armor_IMG = armor_SPRITES.image_at((7 * constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 		crown_IMG = helmets_SPRITES.image_at((2 * constants.TILE_SIZE, 3 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+		cloak_of_invisibility_IMG = armor_SPRITES.image_at((constants.TILE_SIZE, 5 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
 
 
 		ui_MESSAGE_HORIZONTAL = ui_SPRITES.image_at((constants.TILE_SIZE, constants.TILE_SIZE * 3, constants.TILE_SIZE, constants.TILE_SIZE))
@@ -104,7 +107,8 @@ class Game(object):
 		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
 				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG,
 				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG,
-				ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG, goblin_IMG, magic_bell_IMG, noise_indicator_IMG]
+				ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG, goblin_IMG, magic_bell_IMG, noise_indicator_IMG, potion_of_death_IMG, cloak_of_invisibility_IMG]
+																														#  27				28
 
 	def set_map(self):
 
@@ -129,7 +133,7 @@ class Game(object):
 
 		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))#, pygame.FULLSCREEN)
 
-		pygame.display.set_caption("RL")
+		pygame.display.set_caption("{0} {1}".format(constants.title, constants.version))
 
 		self.images = self.get_images()
 
@@ -139,6 +143,7 @@ class Game(object):
 		player.description = constants.player_DESCRIPTION
 		player.fighter.modificators.update(constants.mods)
 		#player.fighter.modificators['mod_to_be_heard'] = -100
+		player.fighter.modificators["mod_to_be_seen"] = 100
 		#player.hearing = 1 change to modificator
 		player.knee_health = 10
 
@@ -147,18 +152,18 @@ class Game(object):
 		worm = objects.Object(1, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component)
 
 		# for variety only, demo implementation
-		for n in range(constants.MAX_ENEMIES + 30):
-			mon_x = random.randint(1, constants.MAP_WIDTH - 1)
-			mon_y = random.randint(1, constants.MAP_HEIGHT - 1)
-			if self.map[mon_x][mon_y].block_sight or (mon_x, mon_y) == (player.x, player.y):
-				continue
-			else:
-				gobleen_ai = objects.NoiseAI(hearing_chance=60)
-				gobleen_fighter_component = objects.Fighter(25, 10, 10)
-				gobleen = objects.Object(mon_x, mon_y, self.images[25], 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component, initial_seeing_chance=90) # 2 7
-				gobleen.sounds['sound_walk'] = "mumbling and shuffling."
-				gobleen.fighter.modificators.update(constants.mods)
-				self.objects.append(gobleen)
+		#for n in range(constants.MAX_ENEMIES + 30):
+		#	mon_x = random.randint(1, constants.MAP_WIDTH - 1)
+		#	mon_y = random.randint(1, constants.MAP_HEIGHT - 1)
+		#	if self.map[mon_x][mon_y].block_sight or (mon_x, mon_y) == (player.x, player.y):
+		#		continue
+		#	else:
+		#		gobleen_ai = objects.NoiseAI(hearing_chance=60)
+		#		gobleen_fighter_component = objects.Fighter(25, 10, 10)
+		#		gobleen = objects.Object(mon_x, mon_y, self.images[25], 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component, initial_seeing_chance=90) # 2 7
+		#		gobleen.sounds['sound_walk'] = "mumbling and shuffling."
+		#		gobleen.fighter.modificators.update(constants.mods)
+		#		self.objects.append(gobleen)
  
 		abhorrent_creature_AI = objects.NoiseAI(hearing_chance=100)
 		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
@@ -167,11 +172,12 @@ class Game(object):
 		abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
 		abhorrent_creature.fighter.modificators.update(constants.mods)
 
-		#goblin_AI = objects.NoiseAI(hearing=1)
-		#goblin_fighter_component = objects.Fighter(25, 10, 10)
-		#goblin = objects.Object(24, 11, self.images[25], 'Goblin', blocks=True, block_sight=True, fighter=goblin_fighter_component, ai=goblin_AI, initial_fov=5)
-		#goblin.sounds['sound_walk'] = "mumbling and shuffling."
-		# you hear...
+		gobleen_ai = objects.NoiseAI(hearing_chance=60)
+		gobleen_fighter_component = objects.Fighter(25, 10, 10)
+		gobleen = objects.Object(24, 11, self.images[25], 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component, initial_seeing_chance=90) # 2 7
+		gobleen.sounds['sound_walk'] = "mumbling and shuffling."
+		gobleen.fighter.modificators.update(constants.mods)
+		#gobleen.fighter.modificators["mod_to_seeing"] += 70
 		#magic_bell = objects.Object(24, 11, self.images[26], 'Magic Bell', blocks=True, block_sight=True)
 		#second_magic_bell = objects.Object(24, 17, self.images[26], 'Magic Bell', blocks=True, block_sight=True)
 
@@ -190,6 +196,9 @@ class Game(object):
 		ultimate_hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, heal_value=50)
 		ultimate_hp_potion = objects.Object(player.x + 3, player.y, self.images[21], 'ultimate healing potion', item=ultimate_hp_potion_item_component)
 
+		potion_of_death_item_component = objects.Item(use_func=use_functions.instant_death, can_break=True)
+		potion_of_death = objects.Object(player.x + 4, player.y + 1, self.images[28], 'potion of death', item=potion_of_death_item_component)
+
 		oil_item_component = objects.Item(use_func=use_functions.refill_lantern, can_break=True, oil_value=500)
 		oil = objects.Object(player.x + 3, player.y + 2, self.images[24], 'oil', item=oil_item_component)
 
@@ -200,19 +209,22 @@ class Game(object):
 			self.objects.append(scroll_of_uncontrolled_teleportation)
 
 
-
 		self.ui = UI(player.fighter, self.images, 'game_screen')
 		bronze_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=4)
 		bronze_armor_item_component = objects.Item(use_func=use_functions.equip, name='bronze breastplate', equipment=bronze_armor_equipment_component, UI=self.ui)
 		bronze_armor = objects.Object(player.x + 1, player.y + 1, self.images[16], 'bronze breastplate', item=bronze_armor_item_component)
 
 		crystal_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=50)
-		crystal_armor_item_component = objects.Item(use_func=use_functions.equip, name='crystal breastplate', equipment=crystal_armor_equipment_component, UI=self.ui)
+		crystal_armor_item_component = objects.Item(use_func=use_functions.equip, name='crystal breastplate', equipment=crystal_armor_equipment_component, UI=self.ui, weight=51)
 		crystal_armor = objects.Object(player.x, player.y + 1, self.images[18], 'crystal breastplate', item=crystal_armor_item_component)
 
 		crown_equipment_component = objects.Equipment(slot='helmet', defence_bonus=2, max_health_bonus=100)
 		crown_item_component = objects.Item(use_func=use_functions.equip, name='golden crown of great health', equipment=crown_equipment_component, UI=self.ui)
 		crown = objects.Object(player.x + 3, player.y + 1, self.images[20], 'golden crown of great health', item=crown_item_component)
+
+		cloak_of_invisibility_equipment_component = objects.Equipment(slot='cloak', defence_bonus=3, chance_to_be_seen_modificator=-200)
+		cloak_of_invisibility_item_component = objects.Item(use_func=use_functions.equip, name='cloak of invisibility', equipment=cloak_of_invisibility_equipment_component, UI=self.ui)
+		cloak_of_invibility = objects.Object(player.x + 4, player.y + 2, self.images[29], 'cloak of invisibility', item=cloak_of_invisibility_item_component)
 
 
 		iron_sword_equipment_component = objects.Equipment(slot='right_hand', power_bonus=10) # for now fixed hand
@@ -238,6 +250,9 @@ class Game(object):
 		self.objects.append(great_steel_long_sword)
 		self.objects.append(lantern)
 		self.objects.append(oil)
+		self.objects.append(gobleen)
+		self.objects.append(potion_of_death)
+		self.objects.append(cloak_of_invibility)
 		#self.objects.append(goblin)
 		#self.objects.append(magic_bell)
 		#self.objects.append(second_magic_bell)
@@ -282,25 +297,24 @@ class Game(object):
 				if event.key == pygame.K_b:
 					player.move(-1, 1, self.map, self.fov_map, self.objects)
 					return 'took_turn'
-
 				if event.key == pygame.K_c:
 					player.fighter.sneak()
 					return 'took_turn'
-
 				if event.key == pygame.K_g:
 					item = player.fighter.get(self.objects)
 					if item is not None:
 						self.ui.add_item_to_UI(item)
 						return 'took_turn'
+
+				if event.key == pygame.K_t:
+					return "throw"
 				if event.key == pygame.K_SEMICOLON:
 					return 'look'
-
 				if event.key == pygame.K_PERIOD:
 					player.noise_made = {'range': 0, 'chance_to_be_heard': 0, 'source': '', 'sound_name': ''} 
 					return 'took_turn'
 
 		return 'idle'
-
 
 	def handle_mouse(self):
 		""" Returns 'took_turn' or 'idle' or 'hovering over'
@@ -395,7 +409,6 @@ class Game(object):
 
 		return {}
 
-
 	def use_item_by_mouse(self, item):
 
 		if item.item.targetable:
@@ -417,7 +430,6 @@ class Game(object):
 	def drop_item_by_mouse(self, item):
 		self.ui.remove_item_from_UI(item.x, item.y)
 		player.fighter.drop(self.objects, item)
-
 
 	def remove_equipment_by_mouse(self, item):
 		self.ui.remove_item_from_equipment_slot(item)
@@ -456,12 +468,21 @@ class Game(object):
 						if target is not None:
 							self.ui.draw_info_window(target, scr)
 
+					if player_action == 'throw':
+						item_to_throw = self.ui.draw_inventory_list(choose_item_text="Throw what?")
+						if item_to_throw is not None:
+							self.ui.remove_item_from_UI(item_to_throw.x, item_to_throw.y)
+							player.fighter.inventory.remove(item_to_throw)
+							self.throw_mode(item_to_throw)
+							player_action = 'took_turn'
+
 					self.state = self.check_for_player_death()
 
 					if player_action == 'took_turn' or mouse_action == 'took_turn':
 
-						objects.player_hurt_or_heal_knees(player, self.map)
 
+						player.fighter.manage_equipment()
+						objects.player_hurt_or_heal_knees(player, self.map)
 						self.listen_for_messagess(player)
 						turn = 'monster_turn'
 
@@ -472,10 +493,7 @@ class Game(object):
 					player.heard_noises = dict()
 					player.heard_noises['monster_sounds'] = []
 
-					#magic_bell.make_noise(self.map, 10, 10, 10, 'Ding', 'Bell makes a noise')
-					#second_magic_bell.make_noise(self.map, 3, 10, 10, 'Ding', 'Bell makes a noise')
-
-					for obj in self.objects:
+					for obj in self.objects: # to not iterate over whole list - add monsters to a dedicated one
 
 
 						self.check_for_death(obj)
@@ -483,16 +501,12 @@ class Game(object):
 						if obj.ai:
 							obj.fighter.manage_equipment()
 
-							#obj.ai.noise_map = player.noise_map # ITS NOISE MAP IS HEARING MAP AND IS DEALT IN listen() METHOD.
-
 							obj.clear_messages() # clear messages - any previous messages are not up to date
 							obj.ai.take_turn(_map=self.map, objects=self.objects, player=player, fov_map=self.fov_map)
 
 							self.listen_for_messagess(obj)
 
 							# Thrown rocks will be player's noise but with different source
-
-
 
 							# Make a function out of this (one function - can_hear(obj_one, obj_two, chances...))
 
@@ -504,7 +518,6 @@ class Game(object):
 							monster_noise_source = obj.noise_made['source']
 							monster_noise_sound = obj.noise_made['sound_name']
 							monster_noise_chance = obj.noise_made['chance_to_be_heard']
-
 
 							#print player.noise_made
 
@@ -518,38 +531,6 @@ class Game(object):
 
 							if utils.can_hear(player, obj, monster_noise_range, monster_noise_source, monster_noise_chance):
 								player.heard_noises['monster_sounds'].append((obj, monster_noise_sound))
-
-
-
-
-
-
-
-
-							# monster hearing player
-							#if player_noise_range > 0:
-							#	if obj.distance_to(player_noise_source) <= player_noise_range and obj.distance_to(player_noise_source) > 1:
-									# do the chance, it can be heard, but not have to.
-
-
-							#		chance = random.randint(0, 100)
-							#		print "CHANCE: {0} ACTUAL SCORE: {1}".format(str(player_noise_chance), chance)
-							#		if chance < player_noise_chance: # + obj.modificators['hearing']
-							#			obj.ai.destination = (player_noise_source.x, player_noise_source.y)
-
-									
-
-							# player hearing monster
-
-							#if monster_noise_range > 0 and player.distance_to(obj) <= monster_noise_range and player.distance_to(monster_source) > 1: # definitely player has a chance to hear monster
-							#		chance = random.randint(0, 100)
-							#		if chance < monster_noise_chance: # + player.modificators['hearing']
-
-								# if heard:
-							#			player.heard_noises['monster_sounds'].append((obj, monster_noise_sound))
-
-									# calculate chance
-
 
 					turn = 'player_turn'
 
@@ -598,13 +579,13 @@ class Game(object):
 
 		for obj in self.objects:
 			if obj.fighter is None:
-				if field_of_view.is_in_fov(self.fov_map, obj):
-					obj.draw(scr)
+				#if field_of_view.is_in_fov(self.fov_map, obj): # comment this out to see every object on map
+				obj.draw(scr)
 
 		for obj in self.objects:
 			if obj.fighter is not None and obj.name != 'player':
-				if field_of_view.is_in_fov(self.fov_map, obj):
-					obj.draw(scr)
+				#if field_of_view.is_in_fov(self.fov_map, obj):
+				obj.draw(scr)
 			obj.clear_messages()
 
 
@@ -679,8 +660,10 @@ class Game(object):
 		y = constants.SCREEN_SIZE_HEIGHT - 2
 		_y = y * constants.FONT_SIZE
 
+		# add portrait of a monster here - if player can hear monster, he will receive his message | or that he hears something
+
 		for message in reversed(self.messages): # last ones are the latest
-			message_to_blit = font.render(message, False, WHITE)
+			message_to_blit = font.render(message, False, WHITE) # color, add custom color
 			scr.blit(message_to_blit, (16, _y))
 			_y -= constants.FONT_SIZE
 
@@ -702,7 +685,7 @@ class Game(object):
 			pygame.display.flip()
 
 
-	def enter_look_mode(self, title, **kwargs):
+	def enter_look_mode(self, title, throwing=False, **kwargs):
 
 		action = None
 
@@ -710,8 +693,8 @@ class Game(object):
 
 		noise = kwargs.get('got_noise')
 
-		noise_to_draw = [x[0] for x in noise['monster_sounds']]
-		#print noise_to_draw
+		if noise is not None:
+			noise_to_draw = [x[0] for x in noise['monster_sounds']]
 
 		x = player.x
 		y = player.y
@@ -743,7 +726,7 @@ class Game(object):
 						x -= 1
 					if event.key == pygame.K_RETURN:
 						for obj in self.objects:
-							if (obj.x, obj.y) == (x, y) and (obj.fighter or obj.item) and self.fov_map[obj.x][obj.y] == 1:
+							if (obj.x, obj.y) == (x, y) and (obj.fighter or obj.item) and self.fov_map[obj.x][obj.y] == 1 and not throwing:
 								return obj
 
 							if (obj.x, obj.y) == (x, y) and obj.fighter and self.fov_map[obj.x][obj.y] != 1 and noise is not None: # sound
@@ -756,7 +739,10 @@ class Game(object):
 										player.sended_messages.append("You hear: {0}".format(mon[1]))
 										self.listen_for_messagess(player)
 										break
-						return None
+						if throwing:
+							return (x,y)
+						else:				
+							return None
 
 			self.draw_all()
 			self.draw_bresenham_line(player.x, player.y, x, y)
@@ -806,9 +792,127 @@ class Game(object):
 				scr.fill(BLACK, black_rect)
 				scr.blit(line_img, (x * constants.FONT_SIZE, y * constants.FONT_SIZE))
 
+	def throw_mode(self, item): # add the functionality of casting spells - to show the spell effect traversing the path (or "item" will be spell, and string in self.enter_look_mode will be "cast where?") 
 
-class UI(object):
-	# this class is responsible for drawing the inventory, drawing noise level, noise indicators and various windows
+		destination = self.enter_look_mode("Throw where?", throwing=True)
+
+		path_of_projectile = utils.bresenham_alg(player.x, player.y, destination[0], destination[1])
+
+		# now: scroll through the map and check if it doesn't collide with an object or wall.
+
+
+		#print "player x,y: {0} {1}".format(player.x, player.y)
+		obj = self.return_obj_at_impact(path_of_projectile, item)
+		#print obj.name
+
+
+		if obj != 'didnt throw':
+
+			player.sended_messages.append("{0} throws {1}!".format(player.name.capitalize(), item.name.capitalize()))
+
+			if obj is not None and not item.item.can_break:
+				# apply the effect on the monster
+
+				print "dupa"
+
+				player.sended_messages.append("{0} hits {1}!".format(item.name.title(), obj.name.title()))
+				self.listen_for_messagess(player)
+
+			if obj is not None and item.item.can_break:
+				player.sended_messages.append("{0} hits {1}!".format(item.name.title(), obj.name.title()))
+				self.listen_for_messagess(player)
+				if item.item.use_func is not None:
+					item.item.use(target=obj, user=player, item=item, UI=self.ui)
+					self.listen_for_messagess(obj)
+					self.check_for_death(obj)
+				player.sended_messages.append("{0} shatters!".format(item.name.title()))
+
+			if obj is None and item.item.can_break:
+				player.sended_messages.append("{0} shatters!".format(item.name.title()))
+				self.listen_for_messagess(player)
+
+			player.noise_made['range'] = 10
+			player.noise_made['chance_to_be_heard'] = 100 # + armor
+			player.noise_made['source'] = item
+			player.noise_made['sound_name'] = 'jeb'
+
+
+		else:
+			player.sended_messages.append("{0} apparently doesn't know how to throw things.".format(player.name.title()))
+			self.listen_for_messagess(player)
+
+
+	def return_obj_at_impact(self, path, item):
+
+		SHOW_PROJECTILE_EVENT = pygame.USEREVENT
+		SHOW_PROJECTILE_MS = 100
+
+		pygame.time.set_timer(SHOW_PROJECTILE_EVENT, SHOW_PROJECTILE_MS)
+		done = False
+		index = 0
+
+		if path != 'dont throw':
+
+			while not done:
+	
+				try:
+	
+					for event in pygame.event.get():
+	
+						if event.type == SHOW_PROJECTILE_EVENT:
+							x = path[index][0]
+							y = path[index][1]
+	
+							if not self.map[x][y].block_sight:
+	
+								for obj in self.objects:
+									if obj.x == x and obj.y == y and obj.fighter and obj.name != constants.PLAYER_NAME:
+										print 'hit'
+										item.x = path[index-1][0]
+										item.y = path[index-1][1]
+										self.objects.append(item)
+
+										#if not item.item.can_break:
+										#	print "dupsko"
+										#	self.objects.append(item)
+										return obj
+
+								#print "{0} {1}ok".format(x, y)
+								pygame.time.set_timer(SHOW_PROJECTILE_EVENT, SHOW_PROJECTILE_MS)
+	
+								self.draw_all()
+								black_rect = pygame.Rect(x * constants.FONT_SIZE, y * constants.FONT_SIZE, 16, 16)
+								scr.fill(BLACK, black_rect)
+								scr.blit(item.img, (x * constants.TILE_SIZE, y * constants.TILE_SIZE))
+								pygame.display.flip()
+	
+								index += 1
+							else:
+								if not len(path) == 1: # When player is close to the wall, do not throw it onto the wall (because starting position is not taken into an account)
+									item.x = path[index-1][0]
+									item.y = path[index-1][1]
+								else:
+									item.x = player.x
+									item.y = player.y
+								self.objects.append(item)
+								done = True
+	
+				except IndexError:
+					if not item.item.can_break:
+						item.x = path[index-1][0]
+						item.y = path[index-1][1]
+						self.objects.append(item)
+						return
+					else:
+						return None
+		else:
+			player.fighter.inventory.append(item)
+			self.ui.add_item_to_UI(item)
+			return 'didnt throw'
+
+
+class UI(object): # move this to objects
+	# this class is responsible for drawing the inventory, noise indicators and various windows
 	def __init__(self, player, images, current_view):
 		self.images = images
 		self.current_view = current_view
@@ -823,6 +927,7 @@ class UI(object):
 
 		self.equipment_places = { 'helmet': [constants.UI_HELMET_SLOT, None],
 								  'breastplate': [constants.UI_BREASTPLATE_SLOT, None],
+								  'cloak': [constants.UI_CLOAK_SLOT, None],
 								  'right_hand': [constants.UI_RIGHT_HAND_SLOT, None],
 								  'left_hand': [constants.UI_LEFT_HAND_SLOT, None],
 								  'left_foot': [constants.UI_LEFT_FOOT_SLOT, None],
@@ -1030,6 +1135,7 @@ class UI(object):
 
 		helmet = self.equipment_places['helmet']
 		breastplate = self.equipment_places['breastplate']
+		cloak = self.equipment_places['cloak']
 		l_hand = self.equipment_places['left_hand']
 		r_hand = self.equipment_places['right_hand']
 		l_foot = self.equipment_places['left_foot']
@@ -1039,7 +1145,7 @@ class UI(object):
 		amulet = self.equipment_places['amulet']
 		accessory = self.equipment_places['accessory']
 
-		items = [helmet, breastplate, l_hand, r_hand, l_foot, r_foot, l_ring, r_ring, amulet, accessory]
+		items = [helmet, breastplate, cloak, l_hand, r_hand, l_foot, r_foot, l_ring, r_ring, amulet, accessory]
 
 		for i in items:
 			scr.blit(self.images[15], (i[0][0] * constants.FONT_SIZE, i[0][1] * constants.FONT_SIZE))
@@ -1066,7 +1172,8 @@ class UI(object):
 		close_sqr_bracket = font.render("]", False, WHITE)
 		knee_good = font.render("|", False, GREEN)
 		knee_bad = font.render("|", False, RED)
-
+		sneaking_TXT = font.render("Crouching", False, PALE)
+		overburdened_TXT = font.render("Overburdened!", False, RED)
 
 		health_BAD_rect = pygame.Rect((constants.START_INFORMATION_BOX_X + 4.3) * constants.TILE_SIZE, ((constants.START_INFORMATION_BOX_Y + 12.3) * constants.TILE_SIZE), 10 * 10, 8)
 		health_GOOD_rect = pygame.Rect((constants.START_INFORMATION_BOX_X + 4.3) * constants.TILE_SIZE, ((constants.START_INFORMATION_BOX_Y + 12.3) * constants.TILE_SIZE), knee_health_to_display * 10, 8)
@@ -1074,6 +1181,12 @@ class UI(object):
 		scr.fill(GREEN, rect=health_GOOD_rect)
 
 		scr.blit(knees_to_blit, (((constants.START_INFORMATION_BOX_X + 1) * constants.TILE_SIZE, (constants.START_INFORMATION_BOX_Y + 12) * constants.TILE_SIZE)))
+
+		if player.fighter.sneaking:
+			scr.blit(sneaking_TXT, ((constants.START_INFORMATION_BOX_X + 1) * constants.TILE_SIZE, constants.START_INFORMATION_BOX_Y + 13 * constants.TILE_SIZE))
+
+		if player.fighter.is_overburdened():
+			scr.blit(overburdened_TXT, ((constants.START_INFORMATION_BOX_X + 1) * constants.TILE_SIZE, constants.START_INFORMATION_BOX_Y + 14 * constants.TILE_SIZE))
 
 	def draw_noise_indicators(self, noises, fov):
 
@@ -1087,16 +1200,77 @@ class UI(object):
 				x = noise.x
 				y = noise.y
 
-
-				#print x, y
-
 				if fov[x][y] != 1:
 					scr.blit(icon, (x * constants.TILE_SIZE, y * constants.TILE_SIZE))
 
 		except IndexError:
 			pass
 
-class Level(object):
+	def draw_inventory_list(self, choose_item_text=None):
+
+		escaped = False
+		messages_IMAGES = [self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
+
+		items_and_keys = {}
+
+		num = 97
+
+		for item in player.fighter.inventory:
+
+			items_and_keys[chr(num)] = item
+
+			num += 1
+
+		print items_and_keys
+
+		while not escaped:
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					pygame.quit()
+					exit(0)
+				if event.type == pygame.KEYDOWN:
+
+					if items_and_keys:
+						key_pressed = chr(event.key)
+
+						if items_and_keys.has_key(key_pressed):
+							return items_and_keys[key_pressed]
+					escaped = True
+
+			scr.fill(BLACK)
+
+			self.draw_rect(0, 0, 42, 37, messages_IMAGES, scr, title="Inventory")
+			if choose_item_text is not None:
+
+				txt = font.render(choose_item_text, False, WHITE)
+				scr.blit(txt, (constants.TILE_SIZE, constants.TILE_SIZE))
+
+
+			y = 3 * constants.TILE_SIZE
+			num = 97
+			for item in player.fighter.inventory:
+
+				items_and_keys[chr(num)] = item
+
+				x = constants.TILE_SIZE * 2
+
+				txt = font.render("{0} - ".format(chr(num)), True, WHITE)
+
+
+				scr.blit(item.img, (x * 3, y))
+				scr.blit(font.render(item.name, True, WHITE), (x * 4, y))
+				scr.blit(txt, (x, y))
+
+				y += constants.TILE_SIZE
+				num += 1
+
+
+			pygame.display.flip()
+
+		return None
+		# return item chosen
+
+class Level(object): # move this to objects
 	pass
 
 
@@ -1106,7 +1280,6 @@ def main():
 	game.run()
 
 if __name__ == '__main__':
-	#cProfile.run('main()')
 	main()
 
 
@@ -1120,7 +1293,7 @@ if __name__ == '__main__':
 # Inventory v
 # Line of sight - to targeting v, description menu v <- partially done, but i don't need to do this right now.
 # Examining - if you get the item from the ground, you cannot look at it! <- if right click -> drop in examine menu v
-# Using items and examining them via keyboard. - a new menu that is ordered by alphabet. -> not needed now
+# Using items and examining them via keyboard. - a new menu that is ordered by alphabet. -> not needed now | (t)hrowing and (a)ctivating have that menu - and! add that when player presses "i"
 
 # Step 2: - Core mechanics that will seperate my game from others
 # Lantern v and torches - increasing fov v refilling v - lantern is given at the beginning with one extra oil, and no lantern is spawned during the game
@@ -1133,17 +1306,17 @@ if __name__ == '__main__':
 # Noise (done by player) represented by exclamation marks : [!!!!!!!!!!!!] (Range, and with colors: level) (Level indicates how piercing through the walls it is, how many walls can it pierce till it fades) <- too demanding
 # Monster's vision. DONE, too demanding!!! (by computer)
 # Below 25 level of depth, abhorrent creatures will spawn and it will be necessary to crouch and sneak.
-# To show what player has already explored, make new item called magic map, that will be taking notes automatically
+# To show what player has already explored, make new item called magic map, that will be taking notes automatically <- not necessary
 # Couple of new enemies, equipment
 # Demo version - 7 levels, and a portal to escape
 
 # Step 3: - Polishing and roguelike elements such as permadeath, levels as well as menu etc.
 # Spawning player randomly, in way which he does not spawn in walls
 # Spawning enemies randomly, in way which they do not spawn in walls
-# Identifying! - Aside from healing potion - this will be recognizable by player from the beginning, because he will receive 1 from mage.
+# Identifying! - Aside from healing potion - this will be recognizable by player from the beginning, because he will receive 1 from mage. | Use random sprite for potion - that way, it will not be recognizable.
 # Help in game - "?"
 # Artifact items!
-# Smith from Metin2 - only way to upgrade, beside finding some magic thing - BUT! it costs a lot of money, and if it goes bad - the item is destroyed.
+# Smith like from Metin2 - only way to upgrade, beside finding some magic thing - BUT! it costs a lot of money, and if it goes bad - the item is destroyed. <- on level above middle one | Chance depending on blessing.
 # Descending, loading maps, saving etc.
 # Magic, spellbooks and spell menu.
 # Endgame - [?] and intro text
@@ -1162,7 +1335,7 @@ if __name__ == '__main__':
 # Engine class?
 # That processess input, puts action into queues, returns states etc
 
-# Make the object that has the ai have its own fov map - it's not good that it works in ways of "If you can see me, I can see you", because it subtracts the tactical possibility of hiding, while still seing other object etc. DONE
+# Make the object that has the ai have its own fov map - it's not good that it works in ways of "If you can see me, I can see you", because it subtracts the tactical possibility of hiding, while still seing other object etc. DONE <- too laggy
 # Another problem that this creates, is that when I will be going to implement lighting, and objects that create light (augment the fov when they're in my fov), simply augment the vision of enemies!
 # Abhorrent creatures are pretty much blind - they can see only for one tile (other than themselves) - but they have excellent hearing
 # Mage will tell in the beginning that the casting unleashed creatures that have weak sight.
@@ -1187,7 +1360,7 @@ if __name__ == '__main__':
 # 7. Sound is made: "fov" of sound traverses with it's own properties, hitting walls, fades etc.: Hits monster that can hear it: Monster goes to sound source. done
 
 
-# New noise AI: Done
+# New noise AI: Done v 0.27
 #	1. Check if the algorithm will not be slow:
 #	 a) Measure the distance between obj and another obj - if it's less or equal than the minimum range then the noise might be heard; proceed to throw random chance. -!draw bresenham line!-.
 #	 b) Get rid of noise map - only check whether there was a sound and iterate over every enemy checking its distance first!
@@ -1201,7 +1374,9 @@ if __name__ == '__main__':
 # We have to optimize first... done
 # Learn profiling.
 
+# Add invisible traps
 
+# Faktycznie mozna byloby wszystkie te metody wyrzucic z Game, czyniac te klase, a w niej zostawic same dane czy metody scisle do niej przynalezace.
 
 # Too demanding:
 
@@ -1217,7 +1392,19 @@ if __name__ == '__main__':
 # 4. Chance to be seen - with lantern it's 100
 
 
+#  v 0.28
+# Next: Chance to seeing in NoiseAI V
+#		When crouching, show that on the right side in ui. V
+#		Throwing - add events to show pseudo-animation of object traversing the path. V | Increasing chance to miss, depending on the distance X <- now it is not important | Add sound on impact! V
+#		Calculated chance of hearing and seeing from armour - decrease or increase V
+#		Add miss chance V
+#		Add STR INT DEX LUCK to introduce classes later on - class type that will determine the stats - player will roll them
+#		Change attacking - random value from initial_attack_stat V
+#		Being overburdened - bigger chance to tumble over | Tumbling over instantly V
+#		Add timed items - scroll of blessing for e.g 50 turns. - scroll of deafening <- timed effects
+#		Add damage from thrown objects
+#		Fix messages going out of bounds.
 
-# Next: Chance to seeing in NoiseAI
-#		Throwing 
-#		Calculated chance of hearing from armour
+
+# ! Bugs:
+	# AI freezes when i make a sound that is far away but loud enough 

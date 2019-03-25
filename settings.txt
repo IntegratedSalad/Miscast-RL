@@ -1,4 +1,7 @@
-vi-keys 0
+vi_keys 0
+intro_text 1
 
 
+
+# Comments only down here
 # if vi-keys are active (1), using items is assigned to 'a'.
