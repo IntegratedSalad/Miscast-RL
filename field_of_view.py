@@ -175,4 +175,3 @@ def cast_rays(px, py, fov_map, level_map, radius): # change that to x and y - so
 def fov_recalculate(fov_map, x, y, _map, radius):
     reset_fov(fov_map)
     cast_rays(x, y, fov_map, _map, radius)
-
