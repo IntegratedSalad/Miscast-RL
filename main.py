@@ -830,24 +830,26 @@ class Game(object): # move this to objects
 
 		#print "player x,y: {0} {1}".format(player.x, player.y)
 		obj = self.return_obj_at_impact(path_of_projectile, item)
+		player.sent_messages.append("{0} throws {1}!".format(player.name.title(), item.name.title()))
+		player.noise_made['range'] = 10
+		player.noise_made['chance_to_be_heard'] = 100 # + armor
+		player.noise_made['source'] = item
+		player.noise_made['sound_name'] = 'jeb'
+
 		print obj
 
 
-		if obj != 'didnt throw':
-
-			player.sent_messages.append("{0} throws {1}!".format(player.name.capitalize(), item.name.capitalize()))
-			player.noise_made['range'] = 10
-			player.noise_made['chance_to_be_heard'] = 100 # + armor
-			player.noise_made['source'] = item
-			player.noise_made['sound_name'] = 'jeb'
-
+		if obj != 'didnt throw' and obj is not None:
+		
 			if obj.fighter is not None and not item.item.can_break:
 				# apply the effect on the monster
 
 				print "dupa"
 
+				# lesser damage
+
 				player.sent_messages.append("{0} hits {1}!".format(item.name.title(), obj.name.title()))
-				self.listen_for_messagess(player)
+				#self.listen_for_messagess(player)
 				return
 
 			if obj.fighter is not None and item.item.can_break:
@@ -858,21 +860,32 @@ class Game(object): # move this to objects
 				#obj.fighter.hp
 
 				if item.item.use_func is not None:
+					print 'dodo'
 					item.item.use(target=obj, user=player, item=item, UI=self.ui)
 					self.check_for_death(obj)
 				player.sent_messages.append("{0} shatters!".format(item.name.title()))
-				self.listen_for_messagess(obj)
+				#self.listen_for_messagess(obj)
 				return
 
-			if obj.fighter is None and item.item.can_break:
-				player.sent_messages.append("{0} shatters!".format(item.name.title()))
-				self.listen_for_messagess(player)
-				return
+			#if obj.fighter is None and item.item.can_break:
+			#	player.sent_messages.append("{0} shatters!".format(item.name.title()))
+				#self.listen_for_messagess(player)
+			#	return
 
 
 		else:
-			player.sent_messages.append("{0} apparently doesn't know how to throw things.".format(player.name.title()))
-			self.listen_for_messagess(player)
+
+			# there wasn't any object and item was breakable
+
+			if obj == 'didnt throw':
+				player.sent_messages.append("{0} apparently doesn't know how to throw things.".format(player.name.title()))
+				return
+
+			elif obj is None:
+				if item.item.can_break:
+					player.sent_messages.append("{0} shatters!".format(item.name.title()))
+				return
+
 
 
 	def return_obj_at_impact(self, path, item):

@@ -3,7 +3,7 @@
 
 """
 
-title = "RL"
+title = "I Cast, Ye Fall - RL"
 version = "0.27.8 - Of Throwing, Containers and Brains."
 
 # SCREEN AND MAP
