@@ -77,7 +77,7 @@ IMAGES_SCROLL_OF_DEATH = 14
 
 #Player stats
 
-PLAYER_NAME = 'pysio'
+PLAYER_NAME = 'Bupsio'
 PLAYER_START_HP = 20
 
 player = {

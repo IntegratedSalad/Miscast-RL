@@ -15,12 +15,12 @@ def heal(**kwargs):
 		if target.fighter.hp > target.fighter.max_hp: target.fighter.hp = target.fighter.max_hp
 
 		heal_message = "{0} was healed for {1}.".format(target.name.title(), heal_val)
-		target.sent_messages.append(heal_message)
+		target.send_message(heal_message)
 		return 'used'
 
 	else:
 		heal_message = "{0} feels as good as before...".format(target.name.title())
-		target.sent_messages.append(heal_message)
+		target.send_message(heal_message)
 		return 'used'
 
 def instant_death(**kwargs):
@@ -33,12 +33,12 @@ def instant_death(**kwargs):
 
 		if not user == target:
 
-			target.sent_messages.append("Vile force is about to be unleashed on earth!")
-			target.sent_messages.append('{0} dies a horrible death!'.format(target.name.title()))
+			target.send_message("Vile force is about to be unleashed on earth!")
+			target.send_message('{0} dies a horrible death!'.format(target.name.title()))
 
-			user.sent_messages.append("You hear someone reetching violently.")
+			user.send_message("You hear someone reetching violently.")
 		else:
-			user.sent_messages.append("You feel suicidal.")
+			user.send_message("You feel suicidal.")
 
 		return 'used'
 
@@ -61,8 +61,8 @@ def uncontrolled_teleportation(**kwargs):
 			target.y = y
 			break
 
-	target.sent_messages.append("{0} feels unstable!".format(target.name.title()))
-	target.sent_messages.append("{0} shifts through space and time.".format(target.name.title()))
+	target.send_message("{0} feels unstable!".format(target.name.title()))
+	target.send_message("{0} shifts through space and time.".format(target.name.title()))
 
 	return 'used'
 
@@ -76,11 +76,11 @@ def equip(**kwargs):
 
 		if UI.add_item_to_equipment_slot(item):
 			target.fighter.equipment.append(item)
-			target.sent_messages.append("{0} wears {1}.".format(target.name.title(), item.name.title()))
+			target.send_message("{0} wears {1}.".format(target.name.title(), item.name.title()))
 			return 'used'
 		else:
-			target.sent_messages.append("You already have something in this slot, you have to")
-			target.sent_messages.append("remove it first.")
+			target.send_message("You already have something in this slot, you have to")
+			target.send_message("remove it first.")
 			return 'cancelled'
 
 	else:
@@ -92,7 +92,7 @@ def equip(**kwargs):
 				return 'cancelled'
 
 		target.fighter.equipment.append(item)
-		target.sent_messages.append("{0} wears {1}.".format(target.name.title(), item.name.title()))
+		target.send_message("{0} wears {1}.".format(target.name.title(), item.name.title()))
 		return 'used'
 
 
@@ -101,7 +101,7 @@ def light_lantern(**kwargs):
 	item = kwargs.get('item')
 	user = kwargs.get('user')
 
-	user.sent_messages.append("{0} lits lantern.".format(user.name.title()))
+	user.send_message("{0} lits lantern.".format(user.name.title()))
 
 	return 'activated'
 
@@ -114,20 +114,20 @@ def refill_lantern(**kwargs):
 		if obj.name == 'lantern':
 			if obj.item.equipment.charges < 1500 and obj.item.equipment.charges + oil_amount < 1500:
 				obj.item.equipment.charges += oil_amount
-				player.sent_messages.append("{0} refills lantern.".format(player.name.title()))
+				player.send_message("{0} refills lantern.".format(player.name.title()))
 				return 'used'
 
 			if obj.item.equipment.charges + oil_amount > 1500:
-				player.sent_messages.append("This will overfill the lantern.")
+				player.send_message("This will overfill the lantern.")
 				return 'cancelled'
 
 			else:
-				player.sent_messages.append("Lantern is full.")
+				player.send_message("Lantern is full.")
 				return 'cancelled'
 
 	# haven't found the lantern in inventory
 
-	player.sent_messages.append("There is no lantern in your inventory.")
+	player.send_message("There is no lantern in your inventory.")
 	return 'cancelled'
 	
 
@@ -151,11 +151,11 @@ def confuse(**kwargs):
 		target.ai.previous_ai = previous_ai
 
 		if not target == user:
-			target.sent_messages.append("You feel funny.")
-			user.sent_messages.append("You see {0} stumbling on everything.".format(target.name))
+			target.send_message("You feel funny.")
+			user.send_message("You see {0} stumbling on everything.".format(target.name))
 
 		else:
-			user.sent_messages.append("You confuse yourself!")
+			user.send_message("You confuse yourself!")
 		return 'used'
 
 	return 'cancelled'

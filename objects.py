@@ -5,6 +5,7 @@ import field_of_view
 import constants
 import random
 import utils
+import textwrap
 
 
 class Object(object):
@@ -97,6 +98,17 @@ class Object(object):
 		self.item = None
 		self.img = None
 
+	def send_message(self, message):
+
+		if len(message) > 56:
+			message_to_wrap = textwrap.wrap(message, 56)
+
+			for wrapped_message in message_to_wrap:
+				self.sent_messages.append(wrapped_message)
+
+		else:
+			self.sent_messages.append(message)
+
 class Fighter(object):
 
 	# every being makes noise and can attack, have inventory
@@ -112,10 +124,6 @@ class Fighter(object):
 		self.knees = 10 # knee health
 		# add modificators like hearing and chance depending on armor
 		self.modificators = {}
-
-		if self.effects is not None:
-			for ef in self.effects:
-				self.ef.owner = self
 
 		# Modificators will be values that can add, or subtract from chances.
 
@@ -198,9 +206,11 @@ class Fighter(object):
 
 		return bonus_chance
 
-	@property
-	def add_to_modificator(self, mod, value):
-		self.modificators[mod] = value
+	#@property
+	#def modificator_bonus(self, mod_name):
+	#	for effect in self.effects
+	#		if effect.modificator == mod_name:
+	#			return effect.modificator
 
 
 	def attack(self, target):
@@ -223,7 +233,7 @@ class Fighter(object):
 		else:
 			mess = "{0} attacks {1} and misses!".format(self.owner.name.title(), target.name.title())
 
-		self.owner.sent_messages.append(mess)
+		self.owner.send_message(mess)
 
 	def kill(self, fov_map, player_x, player_y, _map, images, player_light_radius):
 		self.owner.ai = None
@@ -236,7 +246,7 @@ class Fighter(object):
 		self.owner.sounds = None
 		self.owner.clear(self.owner.x, self.owner.y, _map)
 		field_of_view.fov_recalculate(fov_map, player_x, player_y, _map, radius=player_light_radius)
-		self.owner.sent_messages.append(self.owner.name.title() + " is dead.")
+		self.owner.send_message(self.owner.name.title() + " is dead.")
 
 	def get(self, objects, ui):
 		for obj in objects:
@@ -244,7 +254,7 @@ class Fighter(object):
 				if obj.item is not None:
 					if self.owner.x == obj.x and self.owner.y == obj.y:
 						self.inventory.append(obj)
-						self.owner.sent_messages.append("{0} picks up {1}.".format(self.owner.name.title(), obj.name.title()))
+						self.owner.send_message("{0} picks up {1}.".format(self.owner.name.title(), obj.name.title()))
 						objects.remove(obj)
 						return obj
 			else:
@@ -260,16 +270,16 @@ class Fighter(object):
 					ob.container.put_inside(obj)
 					ui.remove_item_from_UI(obj.x, obj.y)
 					self.inventory.remove(obj)
-					self.owner.sent_messages.append("{0} puts {1} in {2}.".format(self.owner.name.title(), obj.name.title(), ob.name.title()))
+					self.owner.send_message("{0} puts {1} in {2}.".format(self.owner.name.title(), obj.name.title(), ob.name.title()))
 					return
 				else:
-					self.owner.sent_messages.append("There is something already there.")
+					self.owner.send_message("There is something already there.")
 					return
 
 		obj.x = self.owner.x
 		obj.y = self.owner.y
 		self.inventory.remove(obj)
-		self.owner.sent_messages.append("{0} drops {1}.".format(self.owner.name.title(), obj.name.title()))
+		self.owner.send_message("{0} drops {1}.".format(self.owner.name.title(), obj.name.title()))
 		objects.append(obj)
 
 	def manage_fighter(self): # change to manage fighter, so that it deals with sneaking too
@@ -280,16 +290,16 @@ class Fighter(object):
 		if self.is_overburdened():
 			self.knees = -0.1
 
-		for effect in self.effects:
-			effect.update()
+		#for effect in self.effects:
+		#	effect.update()
 
 	def sneak(self):
 		if not self.sneaking:
 			self.sneaking = True
-			self.owner.sent_messages.append("You crouch.")
+			self.owner.send_message("You crouch.")
 		else:
 			self.sneaking = False
-			self.owner.sent_messages.append("You stand up.")
+			self.owner.send_message("You stand up.")
 
 	def is_overburdened(self):
 		#print self.burden
@@ -301,9 +311,9 @@ class Fighter(object):
 	def open(self, obj, ui, user):
 		if len(obj.container.loot) > 0: 
 			obj.container.open(ui, user)
-			self.owner.sent_messages.append("You open {0}.".format(obj.name.title()))
+			self.owner.send_message("You open {0}.".format(obj.name.title()))
 		else:
-			self.owner.sent_messages.append("{0} is empty.".format(obj.name.title()))
+			self.owner.send_message("{0} is empty.".format(obj.name.title()))
 
 
 class FSM(object):
@@ -544,7 +554,7 @@ class Item(object):
 			else:
 				return 'cancelled'
 		else:
-			user.sent_messages.append("You cannot use that.")
+			user.send_message("You cannot use that.")
 
 
 class Equipment(object):
@@ -585,7 +595,7 @@ class Equipment(object):
 
 		if self.activation_func is not None and self.activated and not just_activated:
 			self.activated = False
-			user.sent_messages.append("{0} {1} {2}".format(user.name.title(), self.deactivation_string, eq_name.title()))
+			user.send_message("{0} {1} {2}".format(user.name.title(), self.deactivation_string, eq_name.title()))
 
 	def wear_off(self, user, eq_name):
 		if self.activated and self.charges > 0: self.charges -= 1
@@ -595,33 +605,38 @@ class Equipment(object):
 
 	def deactivate_from_wear(self, user, eq_name):
 		self.activated = False
-		user.sent_messages.append("{0}'s {1} {2}.".format(user.name.title(), eq_name.title(), self.wear_off_string))
+		user.send_message("{0}'s {1} {2}.".format(user.name.title(), eq_name.title(), self.wear_off_string))
 
 
 class Effect(object): # timed effect
-	def __init__(self, name, activation_string, deactivation_string, duration, activation_func=None, deactivation_func=None):
+	def __init__(self, name, owner, activation_string, deactivation_string, duration, modificator=None, activation_func=None, deactivation_func=None):
 		# effect must be a string
 		self.name = name
 		self.activation_string = activation_string
 		self.deactivation_string = deactivation_string
 		self.duration = duration
+		self.modificator = modificator
+		self.owner = owner
 
 	def wear_off(self):
 		if self.deactivation_func is not None:
 			self.deactivation_func(**kwargs)
-		self.owner.sent_messages.append("{0}!".format(deactivation_string))
+		self.owner.send_message("{0}!".format(deactivation_string))
 		self.owner.effects.remove(self)
 
 	def activate(self):
 		if func is not None:
 			self.func(**kwargs)
-		self.owner.sent_messages.append("{0}!".format(activation_string))
+		self.owner.send_message("{0}!".format(activation_string))
 
 	def update(self):
 		self.duration -= 1
 
 		if self.duration <= 0:
 			self.wear_off()
+
+
+
 
 
 class Container(object): # to have more loot in one place
@@ -677,4 +692,4 @@ def player_scream(player, _map):
 	player.noise_made['source'] = player
 	player.noise_made['sound_name'] = "fuck"
 
-	player.sent_messages.append("You scream: 'AH FUCK MY KNEES!'")
+	player.send_message("You scream: 'AH FUCK MY KNEES!'")

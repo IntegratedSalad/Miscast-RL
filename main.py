@@ -172,13 +172,13 @@ class Game(object): # move this to objects
 		#		self.objects.append(gobleen)
  
 
- 		#abhorrent_creature_BRAIN = objects.FSM()
-		#abhorrent_creature_AI = objects.NoiseAI(hearing_chance=100, brain=abhorrent_creature_BRAIN)
-		#abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
-		#abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI, initial_seeing_chance=20)
-		#abhorrent_creature.sounds['sound_walk'] = "deep low humming."
-		#abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
-		#abhorrent_creature.fighter.modificators.update(constants.mods)
+ 		abhorrent_creature_BRAIN = objects.FSM()
+		abhorrent_creature_AI = objects.NoiseAI(hearing_chance=100, brain=abhorrent_creature_BRAIN)
+		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
+		abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI, initial_seeing_chance=20)
+		abhorrent_creature.sounds['sound_walk'] = "deep low humming."
+		abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
+		abhorrent_creature.fighter.modificators.update(constants.mods)
 
 		gobleen_BRAIN = objects.FSM()
 		gobleen_ai = objects.NoiseAI(hearing_chance=60, brain=gobleen_BRAIN)
@@ -260,7 +260,7 @@ class Game(object): # move this to objects
 		chest = objects.Object(player.x + 2, player.y + 4, self.images[31], 'chest', container=chest_container_component)
 
 		self.objects.append(player)
-		#self.objects.append(abhorrent_creature)
+		self.objects.append(abhorrent_creature)
 		self.objects.append(scroll_of_death)
 		self.objects.append(bronze_armor)
 		self.objects.append(crystal_armor)
@@ -382,7 +382,7 @@ class Game(object): # move this to objects
 					equipment_piece.activate(user=player, eq_name=item.name)
 
 				else:
-					player.sent_messages.append("You press your {0} but nothing happens.".format(item.name.title()))
+					player.send_message("You press your {0} but nothing happens.".format(item.name.title()))
 
 				return 'took_turn'
 
@@ -392,7 +392,7 @@ class Game(object): # move this to objects
 					item = action['item_to_drop']
 					self.pause_menu()
 					self.remove_equipment_by_mouse(item)
-					player.sent_messages.append("You remove your {0}.".format(item.name.title()))
+					player.send_message("You remove your {0}.".format(item.name.title()))
 					return 'took_turn'
 
 		return 'idle'
@@ -459,9 +459,9 @@ class Game(object): # move this to objects
 	def run(self):
 		self.state = 'playing'
 		clock = pygame.time.Clock()
-		player.sent_messages.append("To exit, press ESC.")
-		player.sent_messages.append("For more help press '?'.")
-		player.sent_messages.append("You descend into your own basement.")
+		player.send_message("To exit, press ESC.")
+		player.send_message("For more help press '?'.")
+		player.send_message("You descend into your own basement.")
 		self.listen_for_messagess(player)
 		noises = None
 
@@ -681,6 +681,8 @@ class Game(object): # move this to objects
 
 	def listen_for_messagess(self, obj):
 
+		print self.messages
+
 		# it has to remove that amount of messages, so the only 5 remains
 		if len(self.messages) <= 5:
 			self.messages.extend(obj.sent_messages)
@@ -770,7 +772,7 @@ class Game(object): # move this to objects
 								for mon in monsters:
 
 									if obj == mon[0]:
-										player.sent_messages.append("You hear: {0}".format(mon[1]))
+										player.send_message("You hear: {0}".format(mon[1]))
 										self.listen_for_messagess(player)
 										break
 						if throwing:
@@ -839,7 +841,7 @@ class Game(object): # move this to objects
 
 		#print "player x,y: {0} {1}".format(player.x, player.y)
 		obj = self.return_obj_at_impact(path_of_projectile, item)
-		player.sent_messages.append("{0} throws {1}!".format(player.name.title(), item.name.title()))
+		player.send_message("{0} throws {1}!".format(player.name.title(), item.name.title()))
 		player.noise_made['range'] = 10
 		player.noise_made['chance_to_be_heard'] = 1000 # + armor
 		player.noise_made['source'] = item
@@ -857,12 +859,12 @@ class Game(object): # move this to objects
 
 				# lesser damage
 
-				player.sent_messages.append("{0} hits {1}!".format(item.name.title(), obj.name.title()))
+				player.send_message("{0} hits {1}!".format(item.name.title(), obj.name.title()))
 				#self.listen_for_messagess(player)
 				return
 
 			if obj.fighter is not None and item.item.can_break:
-				player.sent_messages.append("{0} hits {1}!".format(item.name.title(), obj.name.title()))
+				player.send_message("{0} hits {1}!".format(item.name.title(), obj.name.title()))
 
 				# damage
 
@@ -872,27 +874,21 @@ class Game(object): # move this to objects
 					print 'dodo'
 					item.item.use(target=obj, user=player, item=item, UI=self.ui)
 					self.check_for_death(obj)
-				player.sent_messages.append("{0} shatters!".format(item.name.title()))
+				player.send_message("{0} shatters!".format(item.name.title()))
 				#self.listen_for_messagess(obj)
 				return
-
-			#if obj.fighter is None and item.item.can_break:
-			#	player.sent_messages.append("{0} shatters!".format(item.name.title()))
-				#self.listen_for_messagess(player)
-			#	return
-
 
 		else:
 
 			# there wasn't any object and item was breakable
 
 			if obj == 'didnt throw':
-				player.sent_messages.append("{0} apparently doesn't know how to throw things.".format(player.name.title()))
+				player.send_message("{0} apparently doesn't know how to throw things.".format(player.name.title()))
 				return
 
 			elif obj is None:
 				if item.item.can_break:
-					player.sent_messages.append("{0} shatters!".format(item.name.title()))
+					player.send_message("{0} shatters!".format(item.name.title()))
 				return
 
 
@@ -926,7 +922,6 @@ class Game(object): # move this to objects
 										item.x = path[-1][0]
 										item.y = path[-1][1]
 										if not item.item.can_break:
-											print 'NON BREAKABLE'
 											self.objects.append(item)
 
 										#if not item.item.can_break:
@@ -946,27 +941,23 @@ class Game(object): # move this to objects
 								index += 1
 							else:
 								if not len(path) == 1: # When player is close to the wall, do not throw it onto the wall (because starting position is not taken into an account)
-									print 'dddddd'
 									item.x = path[index-1][0]
 									item.y = path[index-1][1]
 								else:
 									item.x = player.x
 									item.y = player.y
 								if not item.item.can_break:
-									print 'dijdeid'
 									self.objects.append(item)
 								done = True
 								return None
 	
 				except IndexError:
 					if not item.item.can_break:
-						print 'dddidj'
 						item.x = path[-1][0]
 						item.y = path[-1][1]
 						self.objects.append(item)
 						return
 					else:
-						print 'ddijdijdidjdid'
 						item.x = path[-1][0]
 						item.y = path[-1][1]
 						if item in self.objects: # resolves one bug with removing item from self.objects when throwing
@@ -1417,11 +1408,12 @@ if __name__ == '__main__':
 # TO FIX:
 # 1. Change FONT_SIZE to TILE_SIZE when necessary
 # When player dies, game doesn't acknowledge that
+# + sign when there are multiple items of the same type in inventory
 # If there are several items on the ground, you have to pick up everything that is above from wanted item! <- Maybe allow only one item to be put in one spot? <- DONE, but I don't know if thats a good thing, maybe build a menu from which I can select what I want to get
 # Getting images - one big array is very inconvenient.
 # Object data in dictionary
 # Multiple use functions
-# Messages are out of bound - make text wrapping in messages field.
+# Messages are out of bound - make text wrapping in messages field. <- Fixed
 
 # Engine class?
 # That processess input, puts action into queues, returns states etc
@@ -1492,7 +1484,7 @@ if __name__ == '__main__':
 #		Add STR INT DEX LUCK to introduce classes later on - class type that will determine the stats - player will roll them
 #		Change attacking - random value from initial_attack_stat V
 #		Being overburdened - bigger chance to tumble over | Tumbling over instantly V | Add Burdened - to show player that he is on the edge of being overburdened DONE
-#		Add timed items - scroll of blessing for e.g 50 turns. - scroll of deafening <- timed effects <- multiple moded modificators
+#		Add timed items - scroll of blessing for e.g 50 turns. - scroll of deafening <- timed effects <- multiple moded modificators <- later
 #		Add damage from thrown objects
 #		Not "sended" - "sent"! DONE
 #		Write a sentence, that shows when player wants to activate item that has 0 charges.
@@ -1511,3 +1503,4 @@ if __name__ == '__main__':
 #		Saving, loading, deleting saves. <- one save state
 #		Demo version - simple procedural progression of items and monsters, 7 levels <- this first, next menu - very important, we have to know if it is at all playable
 #		Simple Menu without intro, but with [not in demo] classes except Warrior.
+#		Debug mode - this map that I'm testing things on.
