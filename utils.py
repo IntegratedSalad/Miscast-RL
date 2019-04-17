@@ -4,36 +4,46 @@ import math
 import random
 
 
-#def make_noise_map(x, y, level_map, radius, fade_value, top_noise_value):
-    # fade value indicates how many tiles the sound can penetrate
-
-    # use bresenham line 
-#    pass
-
 def non_obj_distance_to(other, self_x, self_y):
     dx = other[0] - self_x
     dy = other[1] - self_y
     return math.sqrt(dx ** 2 + dy ** 2)
 
-def can_hear(obj, obj_two, noise_range, noise_source, noise_chance):
+def can_hear(obj_hearing, obj_heard, noise_range, noise_chance): # obj_heard = noise_source
 
-    obj_mod_to_be_heard = obj_two.fighter.modificators['mod_to_be_heard'] # obj_two
-    obj_mod_to_hearing = obj.fighter.modificators['mod_to_hearing'] # obj_one
 
-    if noise_range > 0 and obj.distance_to(noise_source) <= noise_range and obj.distance_to(noise_source) > 1:
-        # do the chance, it can be heard, but not have to.
+    if ( type(obj_hearing) is not str ) and ( type(obj_heard) is not str ): # otherwise it is silence.
 
-        chance = random.randint(0, 100)
+        #print obj_heard.name
+        #print noise_range
+        #print noise_chance
+    
+        obj_hearing_mod_to_hearing = obj_hearing.fighter.modificators['mod_to_hearing']
 
-        throw = noise_chance + obj_mod_to_be_heard + obj_mod_to_hearing + obj.fighter.armor_to_hear_modificator + obj_two.fighter.armor_to_be_heard_modificator
+        if obj_heard.item is None:
+            obj_heard_mod_to_be_heard = obj_heard.fighter.modificators['mod_to_be_heard']
+            OBJ_HEARD_ARMOR_MOD = obj_heard.fighter.armor_to_be_heard_modificator
 
-        #print  "{0}: Throws: {1}, Treshold: {2} | is {3} < {4}? : {5}".format(obj.name, str(chance), str(throw), str(chance), str(throw), str(chance < throw))
+        else:
+            OBJ_HEARD_ARMOR_MOD = 100
+            obj_heard_mod_to_be_heard = 100
 
-        if chance < throw:
+        #print math.ceil(obj_hearing.distance_to(obj_heard))
+        #print math.ceil(obj_hearing.distance_to(obj_heard)) <= noise_range
 
-            #print obj.name + " heard"
+        if noise_range > 0 and obj_hearing.distance_to(obj_heard) <= noise_range and obj_hearing.distance_to(obj_heard) > 1:
 
-            return True
+            chance = random.randint(0, 100)
+
+            throw = noise_chance + obj_heard_mod_to_be_heard + obj_hearing_mod_to_hearing + obj_hearing.fighter.armor_to_hear_modificator + OBJ_HEARD_ARMOR_MOD
+
+            print  "{0}: Throws: {1}, Treshold: {2} | is {3} < {4}? : {5}".format(obj_hearing.name, str(chance), str(throw), str(chance), str(throw), str(chance < throw))
+
+            if chance < throw:
+
+                print obj_heard.name + " was heard."
+
+                return True
 
     return False
 

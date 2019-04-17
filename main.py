@@ -147,7 +147,7 @@ class Game(object): # move this to objects
 		player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=3)
 		player.description = constants.player_DESCRIPTION
 		player.fighter.modificators.update(constants.mods)
-		#player.fighter.modificators['mod_to_be_heard'] = -100
+		player.fighter.modificators['mod_to_be_heard'] = -400
 		player.fighter.modificators["mod_to_be_seen"] = 100
 		#player.hearing = 1 change to modificator
 		player.knee_health = 10
@@ -156,14 +156,15 @@ class Game(object): # move this to objects
 		worm_fighter_component = objects.Fighter(2, 2, 1)
 		worm = objects.Object(1, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component)
 
-		# for variety only, demo implementation
-		#for n in range(constants.MAX_ENEMIES + 30):
+		#for variety only, demo implementation
+		#for n in range(constants.MAX_ENEMIES + 20):
 		#	mon_x = random.randint(1, constants.MAP_WIDTH - 1)
 		#	mon_y = random.randint(1, constants.MAP_HEIGHT - 1)
 		#	if self.map[mon_x][mon_y].block_sight or (mon_x, mon_y) == (player.x, player.y):
 		#		continue
 		#	else:
-		#		gobleen_ai = objects.NoiseAI(hearing_chance=60)
+		#		gobleen_BRAIN = objects.FSM()
+		#		gobleen_ai = objects.NoiseAI(hearing_chance=60, brain=gobleen_BRAIN)
 		#		gobleen_fighter_component = objects.Fighter(25, 10, 10)
 		#		gobleen = objects.Object(mon_x, mon_y, self.images[25], 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component, initial_seeing_chance=90) # 2 7
 		#		gobleen.sounds['sound_walk'] = "mumbling and shuffling."
@@ -171,13 +172,13 @@ class Game(object): # move this to objects
 		#		self.objects.append(gobleen)
  
 
- 		abhorrent_creature_BRAIN = objects.FSM()
-		abhorrent_creature_AI = objects.NoiseAI(hearing_chance=100, brain=abhorrent_creature_BRAIN)
-		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
-		abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI, initial_seeing_chance=20)
-		abhorrent_creature.sounds['sound_walk'] = "deep low humming."
-		abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
-		abhorrent_creature.fighter.modificators.update(constants.mods)
+ 		#abhorrent_creature_BRAIN = objects.FSM()
+		#abhorrent_creature_AI = objects.NoiseAI(hearing_chance=100, brain=abhorrent_creature_BRAIN)
+		#abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
+		#abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI, initial_seeing_chance=20)
+		#abhorrent_creature.sounds['sound_walk'] = "deep low humming."
+		#abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
+		#abhorrent_creature.fighter.modificators.update(constants.mods)
 
 		gobleen_BRAIN = objects.FSM()
 		gobleen_ai = objects.NoiseAI(hearing_chance=60, brain=gobleen_BRAIN)
@@ -259,7 +260,7 @@ class Game(object): # move this to objects
 		chest = objects.Object(player.x + 2, player.y + 4, self.images[31], 'chest', container=chest_container_component)
 
 		self.objects.append(player)
-		self.objects.append(abhorrent_creature)
+		#self.objects.append(abhorrent_creature)
 		self.objects.append(scroll_of_death)
 		self.objects.append(bronze_armor)
 		self.objects.append(crystal_armor)
@@ -274,9 +275,6 @@ class Game(object): # move this to objects
 		self.objects.append(cloak_of_invibility)
 		self.objects.append(potion_of_confusion)
 		self.objects.append(chest)
-		#self.objects.append(goblin)
-		#self.objects.append(magic_bell)
-		#self.objects.append(second_magic_bell)
 
 		self.fov_map = field_of_view.set_fov(self.fov_map)
 		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map, radius=player.fighter.max_light_radius)
@@ -531,8 +529,6 @@ class Game(object): # move this to objects
 							obj.fighter.manage_fighter()
 
 							obj.clear_messages() # clear messages - any previous messages are not up to date
-							obj.ai.take_turn(_map=self.map, objects=self.objects, player=player, fov_map=self.fov_map)
-							self.listen_for_messagess(obj)
 
 							# Thrown rocks will be player's noise but with different source
 
@@ -549,15 +545,26 @@ class Game(object): # move this to objects
 
 							#print player.noise_made
 
+
+							# I'M PASSING WRONG VALUES AND IT DOESN'T SHOW UP
+
+							#try:
+							#	print player.x, player.y
+							#	print player_noise_source.x, player_noise_source.y
+							#except:
+							#	pass
+
 							# monster hearing player
-							if utils.can_hear(obj, player, player_noise_range, player_noise_source, player_noise_chance):
-								#.print 'A NEW NOISE!'
+							if utils.can_hear(obj, player_noise_source, player_noise_range, player_noise_chance):
 								obj.ai.destination = (player_noise_source.x, player_noise_source.y)
 
 							# player hearing monster
 
-							if utils.can_hear(player, obj, monster_noise_range, monster_noise_source, monster_noise_chance):
+							if utils.can_hear(player, obj, monster_noise_range, monster_noise_chance):
 								player.heard_noises['monster_sounds'].append((obj, monster_noise_sound))
+
+							obj.ai.take_turn(_map=self.map, objects=self.objects, player=player, fov_map=self.fov_map)
+							self.listen_for_messagess(obj)
 
 					turn = 'player_turn'
 
@@ -825,6 +832,8 @@ class Game(object): # move this to objects
 
 		path_of_projectile = utils.bresenham_alg(player.x, player.y, destination[0], destination[1])
 
+		print item
+
 		# now: scroll through the map and check if it doesn't collide with an object or wall.
 
 
@@ -832,7 +841,7 @@ class Game(object): # move this to objects
 		obj = self.return_obj_at_impact(path_of_projectile, item)
 		player.sent_messages.append("{0} throws {1}!".format(player.name.title(), item.name.title()))
 		player.noise_made['range'] = 10
-		player.noise_made['chance_to_be_heard'] = 100 # + armor
+		player.noise_made['chance_to_be_heard'] = 1000 # + armor
 		player.noise_made['source'] = item
 		player.noise_made['sound_name'] = 'jeb'
 
@@ -914,9 +923,10 @@ class Game(object): # move this to objects
 								for obj in self.objects:
 									if obj.x == x and obj.y == y and obj.fighter and obj.name != constants.PLAYER_NAME:
 										print 'hit'
-										item.x = path[index-1][0]
-										item.y = path[index-1][1]
+										item.x = path[-1][0]
+										item.y = path[-1][1]
 										if not item.item.can_break:
+											print 'NON BREAKABLE'
 											self.objects.append(item)
 
 										#if not item.item.can_break:
@@ -936,21 +946,31 @@ class Game(object): # move this to objects
 								index += 1
 							else:
 								if not len(path) == 1: # When player is close to the wall, do not throw it onto the wall (because starting position is not taken into an account)
+									print 'dddddd'
 									item.x = path[index-1][0]
 									item.y = path[index-1][1]
 								else:
 									item.x = player.x
 									item.y = player.y
-								self.objects.append(item)
+								if not item.item.can_break:
+									print 'dijdeid'
+									self.objects.append(item)
 								done = True
+								return None
 	
 				except IndexError:
 					if not item.item.can_break:
-						item.x = path[index-1][0]
-						item.y = path[index-1][1]
+						print 'dddidj'
+						item.x = path[-1][0]
+						item.y = path[-1][1]
 						self.objects.append(item)
 						return
 					else:
+						print 'ddijdijdidjdid'
+						item.x = path[-1][0]
+						item.y = path[-1][1]
+						if item in self.objects: # resolves one bug with removing item from self.objects when throwing
+							self.objects.remove(item)
 						return None
 		else:
 			player.fighter.inventory.append(item)
@@ -1479,7 +1499,9 @@ if __name__ == '__main__':
 #		FSM done!
 #		Container - Putting V | Taking V
 
-# THROWING DOESNT WORK PROPERLY!!!
+# WHEN THROWN ON THE WALL, ITEM DOESN'T BRAKE <- Fixed
+# Something is wrong with taking from container - last item stays <- Fixed
+# Throwing an item that monster can hear seems to be fixed.
 
 # v 0.29 - Demo version
 #		In-game help.

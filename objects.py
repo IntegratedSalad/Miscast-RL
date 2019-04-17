@@ -367,7 +367,7 @@ class NoiseAI(object): # Maybe do something like this is base ai? and make compo
 		self.player_out_of_sight = 0
 
 	def take_turn(self, _map, objects, player, fov_map):
-		print self.brain.active_state.__name__, self.owner.name
+		#print self.brain.active_state.__name__, self.owner.name
 		#print self.destination, self.owner.name
 		self.brain.update(map=_map, objects=objects, player=player, fov_map=fov_map)
 
@@ -383,6 +383,7 @@ class NoiseAI(object): # Maybe do something like this is base ai? and make compo
 			if self.destination is not None:
 				path = self.set_path(_map, objects, self.destination, player)
 				if not libtcod.path_is_empty(path[0]) and libtcod.path_size(path[0]) < 25:
+					#print self.destination
 					self.brain.active_state = self.investigate
 					self.path = path
 
@@ -406,7 +407,7 @@ class NoiseAI(object): # Maybe do something like this is base ai? and make compo
 
 		if not self.saw_player(fov_map, player):
 
-			print self.owner.x, self.owner.y, self.path[2]
+			#print self.owner.x, self.owner.y, self.path[2]
 
 			if process == 'reached':
 				self.brain.active_state = self.wander
@@ -458,7 +459,7 @@ class NoiseAI(object): # Maybe do something like this is base ai? and make compo
 		distance = utils.non_obj_distance_to((target_x, target_y), self.owner.x, self.owner.y)
 
 		if distance != 0:
-			print 'moving'
+			#print 'moving'
 			
 			dx = target_x - self.owner.x
 			dy = target_y - self.owner.y
@@ -639,6 +640,7 @@ class Container(object): # to have more loot in one place
 					user.inventory.append(item)
 					ui.add_item_to_UI(item)
 					self.loot.remove(item)
+				#print len(user.inventory)
 
 	def put_inside(self, item):
 		self.loot.append(item)
