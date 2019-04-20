@@ -4,7 +4,7 @@
 """
 
 title = "I Cast, Ye Fall - RL"
-version = "0.27.8 - Of Throwing, Containers and Brains."
+version = "0.28 - Of Generated Levels"
 
 # SCREEN AND MAP
 MAP_WIDTH = 30
@@ -60,16 +60,16 @@ UI_LEFT_RING_SLOT = (START_INFORMATION_BOX_X + 3, START_INFORMATION_BOX_Y + 8) #
 UI_CLOAK_SLOT = (START_INFORMATION_BOX_X + (12 / 2)-1, START_INFORMATION_BOX_Y + 5) # CLOAK
 
 # Enemies - map settings
-MAX_ENEMIES = 15
+MAX_ENEMIES = 2
 
 # Indexes for images
 
-IMAGES_INDEX_PLAYER = 0
+#IMAGES_INDEX_PLAYER = 0
 IMAGES_INDEX_WALL = 1
 IMAGES_INDEX_FLOOR = 2
 IMAGES_INDEX_EMPTY_SPACE = 3
-IMAGES_INDEX_WORM = 4
-IMAGES_INDEX_ABHORRENT_CREATURE = 5
+#IMAGES_INDEX_WORM = 4
+#IMAGES_INDEX_ABHORRENT_CREATURE = 5
 
 IMAGES_POTION_HP = 13
 IMAGES_SCROLL_OF_DEATH = 14
@@ -90,8 +90,50 @@ player = {
 		}
 
 # Monster stats
-WORM_MAX_HP = 3
+#------------------------------------------
+WORM_MAX_HP = 5
+WORM_ATTACK = 1
+WORM_DEFENCE = 0
+WORM_NAME = 'worm'
+WORM_SOUND_WALK = 'wiggle'
+WORM_MOD_TO_HEARING = -100
+WORM_MOD_TO_SEEING = -100
+WORM_AI = 'simple_AI'
+WORM_SPAWN_RANGE = (2, 2)
+WORM_SPAWN_CHANCE = 60
+WORM_IMAGE_INDEX = 4
+WORM_MOD_TO_BE_SEEN = 0
+WORM_MOD_TO_BE_HEARD = 0
+#------------------------------------------
 ABHORRENT_CREATURE_MAX_HP = 100 # start hp
+ABHORRENT_CREATURE_ATTACK = 50
+ABHORRENT_CREATURE_DEFENCE = 100
+ABHORRENT_CREATURE_NAME = 'abhorrent creature'
+ABHORRENT_CREATURE_SOUND_WALK = 'deep low humming'
+ABHORRENT_CREATURE_MOD_TO_HEARING = 100
+ABHORRENT_CREATURE_MOD_TO_SEEING = -100
+ABHORRENT_CREATURE_AI = 'noise_AI'
+ABHORRENT_CREATURE_SPAWN_RANGE = (2, 7)
+ABHORRENT_CREATURE_SPAWN_CHANCE = 100
+ABHORRENT_CREATURE_IMAGE_INDEX = 5
+ABHORRENT_CREATURE_MOD_TO_BE_SEEN = 100
+ABHORRENT_CREATURE_MOD_TO_BE_HEARD = 0
+#------------------------------------------
+GOBLIN_MAX_HP = 25
+GOBLIN_ATTACK = 10
+GOBLIN_DEFENCE = 0 # 10
+GOBLIN_NAME = 'goblin'
+GOBLIN_SOUND_WALK = 'mumbling and shuffling'
+GOBLIN_MOD_TO_HEARING = 0
+GOBLIN_MOD_TO_SEEING = 0
+GOBLIN_AI = 'noise_AI'
+GOBLIN_SPAWN_RANGE = (1, 5)
+GOBLIN_SPAWN_CHANCE = 40
+GOBLIN_IMAGE_INDEX = 25
+GOBLIN_MOD_TO_BE_SEEN = 100
+GOBLIN_MOD_TO_BE_HEARD = 0
+#------------------------------------------
+
 # move here all the messages
 
 # DESCRIPIONS
@@ -103,7 +145,8 @@ abhorrent_creature_DESCRIPTION = "What is this?! Hope it doesn't hear me..."
 
 
 mods = {
-
+		
+		# Keep this low, and add +10, +5 etc, besides mods to be seen
 		# Decrease or increase percentage chance
 		'mod_to_be_seen': 0,
 		'mod_to_seeing': 0,

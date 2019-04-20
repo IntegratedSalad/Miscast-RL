@@ -10,7 +10,7 @@ import textwrap
 
 class Object(object):
 
-	def __init__(self, x, y, img, name, blocks=False, block_sight=None, fighter=None, ai=None, item=None, container=None, initial_light_radius=0, initial_seeing_chance=0):
+	def __init__(self, x, y, img, name, blocks=False, block_sight=None, fighter=None, ai=None, item=None, container=None, initial_light_radius=0, damage_at_impact=0):
 		self.x = x
 		self.y = y
 		self.img = img
@@ -24,11 +24,10 @@ class Object(object):
 		self.sent_messages = []
 		self.noise_made = {'range': 0, 'chance_to_be_heard': 0, 'source': '', 'sound_name': ''} 
 		self.heard_noises = []
-		self.noises = {'move': (70, 8), 'crouch': (10, 5)} # CHANCE | RANGE
+		self.noises = {'move': (70, 8), 'crouch': (10, 4)} # CHANCE | RANGE
 		self.sounds = {'sound_walk': '', 'sound_sneak': ''} # names of sounds
 		self.initial_light_radius = initial_light_radius # player is a light source variable for objects
-		self.initial_seeing_chance = initial_seeing_chance # for monsters
-		self.visibleness = 100 # useful when making traps
+		self.damage_at_impact = damage_at_impact
 		self.description =  '' # add multiple entries in dict
 
 		if self.fighter:
@@ -217,7 +216,7 @@ class Fighter(object):
 
 		#make miss a random chance, not 0 - if it stays that way, even the most of the powerful creatures will deal 1 damage
 
-		attack_value = random.randint(((self.initial_attack_stat + self.attack_stat) - random.randint(1, self.initial_attack_stat - 1)), self.initial_attack_stat + self.attack_stat) + random.randint(0, self.initial_attack_stat) # miss cannot be included in damage, if damage == 0 -> "but does no damage"
+		attack_value = random.randint(((self.initial_attack_stat + self.attack_stat) - random.randint(1, self.initial_attack_stat)), self.initial_attack_stat + self.attack_stat) + random.randint(0, self.initial_attack_stat) # miss cannot be included in damage, if damage == 0 -> "but does no damage"
 
 		attack_value = attack_value - (target.fighter.defense_stat / 2)
 
@@ -333,19 +332,16 @@ class SimpleAI(object):
 	# simple ai does not make any noise nor listens for it
 	def take_turn(self, _map, fov_map, objects, player):
 
-		field_of_view.cast_rays(self.owner.x, self.owner.y, fov_map, _map, self.owner.initial_fov)
-
-		if fov_map[player.x][player.y] != 1: 
+		if fov_map[self.owner.x][self.owner.y] != 1: 
 			# walk randomly
 			rand_dir_x = random.randint(-1, 1)
 			rand_dir_y = random.randint(-1, 1)
 
 			self.owner.move(rand_dir_x, rand_dir_y, _map, fov_map, objects)
 
-			field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
-
 		else:
 			# get to the player
+			print self.owner.name
 
 			distance = self.owner.distance_to(player)
 
@@ -358,17 +354,10 @@ class SimpleAI(object):
 				dy = int(round(dy / distance))
 
 				self.owner.move(dx, dy, _map, fov_map, objects)
-				field_of_view.fov_recalculate(fov_map, self.owner.x, self.owner.y, _map, self.owner.initial_fov)
-
-
-	def target_enemy():
-		# instead of always choosing player, it will have a better usability <- between monster fighting is a tough mechanic to pull off
-		pass
-
 
 class NoiseAI(object): # Maybe do something like this is base ai? and make components like CAN_USE_ITEMS, CAN_USE_MAGIC
 
-	def __init__(self, hearing_chance, brain):
+	def __init__(self, brain):
 		self.brain = brain
 		self.brain.active_state = self.wander
 		self.close_destination = False
@@ -490,7 +479,7 @@ class NoiseAI(object): # Maybe do something like this is base ai? and make compo
 class ConfusedAI(object):
 	def __init__(self, brain):
 		self.brain = brain
-		self.duration = 4
+		self.duration = 6
 		self.brain.active_state = self.tumble_around
 
 	def take_turn(self, _map, objects, player, fov_map):
@@ -636,9 +625,6 @@ class Effect(object): # timed effect
 			self.wear_off()
 
 
-
-
-
 class Container(object): # to have more loot in one place
 	def __init__(self, loot=[]):
 		self.loot = loot
@@ -665,7 +651,10 @@ class SpellBook(object):
 	pass
 
 class Portal(object):
-	pass	
+	pass
+
+class Stairs(object):
+	pass
 
 def player_hurt_or_heal_knees(player, _map):
 
@@ -693,3 +682,155 @@ def player_scream(player, _map):
 	player.noise_made['sound_name'] = "fuck"
 
 	player.send_message("You scream: 'AH FUCK MY KNEES!'")
+
+
+
+monsters = {'goblin': [constants.GOBLIN_MAX_HP,
+					   constants.GOBLIN_ATTACK,
+					   constants.GOBLIN_DEFENCE,
+					   constants.GOBLIN_NAME,
+					   constants.GOBLIN_SOUND_WALK,
+					   constants.GOBLIN_MOD_TO_HEARING,
+					   constants.GOBLIN_MOD_TO_SEEING,
+					   constants.GOBLIN_AI,
+				       constants.GOBLIN_SPAWN_RANGE,
+				       constants.GOBLIN_SPAWN_CHANCE,
+				       constants.GOBLIN_IMAGE_INDEX,
+				       constants.GOBLIN_MOD_TO_BE_SEEN,
+				       constants.GOBLIN_MOD_TO_BE_HEARD
+				       ],
+			'worm':	  [constants.WORM_MAX_HP,
+					   constants.WORM_ATTACK,
+					   constants.WORM_DEFENCE,
+					   constants.WORM_NAME,
+					   constants.WORM_SOUND_WALK,
+					   constants.WORM_MOD_TO_HEARING,
+					   constants.WORM_MOD_TO_SEEING,
+					   constants.WORM_AI,
+				       constants.WORM_SPAWN_RANGE,
+				       constants.WORM_SPAWN_CHANCE,
+				       constants.WORM_IMAGE_INDEX,
+				       constants.WORM_MOD_TO_BE_SEEN,
+				       constants.WORM_MOD_TO_BE_HEARD
+					   ],
+			'abhorrent_creature':	[constants.ABHORRENT_CREATURE_MAX_HP,
+					   				 constants.ABHORRENT_CREATURE_ATTACK,
+					   				 constants.ABHORRENT_CREATURE_DEFENCE,
+					   				 constants.ABHORRENT_CREATURE_NAME,
+					   				 constants.ABHORRENT_CREATURE_SOUND_WALK,
+					   				 constants.ABHORRENT_CREATURE_MOD_TO_HEARING,
+					   				 constants.ABHORRENT_CREATURE_MOD_TO_SEEING,
+					   				 constants.ABHORRENT_CREATURE_AI,
+				       				 constants.ABHORRENT_CREATURE_SPAWN_RANGE,
+				       				 constants.ABHORRENT_CREATURE_SPAWN_CHANCE,
+				       				 constants.ABHORRENT_CREATURE_IMAGE_INDEX,
+				       				 constants.ABHORRENT_CREATURE_MOD_TO_BE_SEEN,
+				       				 constants.ABHORRENT_CREATURE_MOD_TO_BE_HEARD
+					   ],
+			}
+
+materials = {}
+
+
+
+# Dict of images and values of damage
+weapons = {'type': {        
+					'swords': []
+
+					}
+		  }
+
+
+
+# PRIORITY IMG, (CHANCE, SPAWN RANGE), DEF, TO_BE_SEEN, TO_BE_HEARD, TO_SEE, TO_HEAR, WEIGHT, MAX_HEALTH_BONUS
+
+chest_armor = {'material': {'bronze': [1, 16, (99, (1, 4)), 7, 0, 10, 0, 0, 10, 0],
+							'copper': [2, 32, (15, (1, 4)), 8, 0, 6, 0, 0, 6, 0],
+							'steel':  [3, 33, (10, (3, 5)), 12, 0, 12, 0, 0, 14, 0],
+							'hardened steel': [4, 34, (8, (3, 6)), 16, 0, 20, 0, 0, 20, 0],
+							'crystal': [5, 18, (3, (5, 7)), 32, 20, 28, 0, 0, 30, 0]
+						   }
+						   
+			  }
+
+helmets = {}
+boots = {}
+cloaks = {}
+accessories = {}
+potions = {}
+scrolls = {}
+
+
+
+items = []
+
+artifacts = {} # like crown of health, boots of silence, cloak of invisibility
+
+
+# all generators have to return 'name': '' and 'data': IMG!!!
+
+def gen_armor(level, _type, slot, equip_use_func, key):
+	# equip_use_func to be passed in main, while generating the level
+
+	armors_generated = []
+
+	current_priority = 0
+
+	materials = _type[key].keys()
+
+	for x in materials:
+		PRIORITY, IMG, CHANCE_SPAWN, DEF, TO_BE_SEEN, TO_BE_HEARD, TO_SEE, TO_HEAR, WEIGHT, MAX_HEALTH_BONUS = _type['material'][x]
+
+		chance = CHANCE_SPAWN[0]
+		_range = CHANCE_SPAWN[1]
+
+		if current_priority < PRIORITY or current_priority == 0:
+			if level in range(_range[0], _range[1]) or ((_range[0] ==_range[1]) and level == _range[0]):
+				throw = random.randint(0, 100)
+				if throw < chance:
+					current_priority = PRIORITY
+					eq_component = Equipment(slot, power_bonus=0, defence_bonus=DEF, equipment_effect=None, max_health_bonus=MAX_HEALTH_BONUS, light_radius_bonus=0, charges=0, activated=False, activation_func=None, deactivation_string="", wear_off_string="", chance_to_be_heard_modificator=TO_BE_HEARD, chance_to_be_seen_modificator=TO_BE_SEEN, chance_to_hear_modificator=TO_HEAR, chance_to_see_modificator=TO_SEE)
+					item_component = Item(use_func=equip_use_func, equipment=eq_component, can_break=False, targetable=False, weight=WEIGHT, effect=None)
+					armors_generated.append({"{0} {1}".format(str(x), slot) : item_component, 'data': IMG})
+
+	return armors_generated
+
+
+	#return Equipment()
+
+
+def gen_monsters(level, monsters, limit):
+
+	monsters_to_place = []
+
+	for x in range(limit):
+		for mon in monsters:
+			if level in range(monsters[mon][8][0], (monsters[mon][8][1])) or level == monsters[mon][8][0]:
+				throw = random.randint(0, 100)
+
+				if throw < monsters[mon][9]:
+					monsters_to_place.append(monsters[mon])
+
+	return monsters_to_place
+
+
+if __name__ == '__main__':
+	pass
+
+	#gen_monsters(1, monsters, 20)
+	
+
+	#armors = []
+
+	#for n in range(1):
+	#	armor = gen_armor(3, chest_armor, 'breastplate', 'use_func', 'material')
+	#	armors.extend(armor)
+
+	#counter = 0
+	#for n in armors:
+
+	#	print n.keys()
+		#if n.has_key('crystal breastplate'):
+		#	counter += 1
+
+	#print counter

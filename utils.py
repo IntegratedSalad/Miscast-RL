@@ -28,16 +28,18 @@ def can_hear(obj_hearing, obj_heard, noise_range, noise_chance): # obj_heard = n
             OBJ_HEARD_ARMOR_MOD = 100
             obj_heard_mod_to_be_heard = 100
 
-        #print math.ceil(obj_hearing.distance_to(obj_heard))
-        #print math.ceil(obj_hearing.distance_to(obj_heard)) <= noise_range
-
         if noise_range > 0 and obj_hearing.distance_to(obj_heard) <= noise_range and obj_hearing.distance_to(obj_heard) > 1:
+
+            if obj_heard.fighter.sneaking:
+                obj_heard_mod_to_be_heard /= 2
 
             chance = random.randint(0, 100)
 
             throw = noise_chance + obj_heard_mod_to_be_heard + obj_hearing_mod_to_hearing + obj_hearing.fighter.armor_to_hear_modificator + OBJ_HEARD_ARMOR_MOD
 
-            print  "{0}: Throws: {1}, Treshold: {2} | is {3} < {4}? : {5}".format(obj_hearing.name, str(chance), str(throw), str(chance), str(throw), str(chance < throw))
+            print noise_chance, obj_heard_mod_to_be_heard, obj_hearing_mod_to_hearing, obj_hearing.fighter.armor_to_hear_modificator, OBJ_HEARD_ARMOR_MOD
+
+            #print  "{0}: Throws: {1}, Treshold: {2} | is {3} < {4}? : {5}".format(obj_hearing.name, str(chance), str(throw), str(chance), str(throw), str(chance < throw))
 
             if chance < throw:
 

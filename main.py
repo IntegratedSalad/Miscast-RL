@@ -10,7 +10,7 @@ import use_functions
 import textwrap
 from spritesheet import Spritesheet
 from map_utils import Tile
-from map_utils import CA_CaveFactory as CA_map
+from gen_map import generate_map_list
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -24,8 +24,8 @@ class Game(object): # move this to objects
 
 	def __init__(self, state=None):
 		self.state = state
-		self.current_raw_map = self.take_raw_map()
-		self.map = self.set_map()
+		self.debug_map = self.take_raw_map_from_file()
+		self.map = None 
 		self.images = []
 		self.objects = []
 		self.fov_map = []
@@ -35,19 +35,22 @@ class Game(object): # move this to objects
 		self.world = "Dungeon" # to keep the track of worlds
 		self.level = 1
 
-	def take_raw_map(self):
+
+	def take_raw_map_from_file(self, file="map.txt"):
 		map_list = []
 		line = ""
-		with open("map.txt", "r") as game_map:
+		with open(file, "r") as game_map: # change that, so it doesn't use text file
 			for n in range(0, constants.MAP_WIDTH):
 				line = game_map.readline()
 				map_list.append(line)
-		return map_list
+		return map_list		
 
 
-	def gen_map(self):
-		pass
+	def gen_new_map(self):
 
+		raw_map_fom_list = generate_map_list()
+
+		self.map = self.set_map(raw_map_fom_list)
 
 	def get_images(self):
 
@@ -68,73 +71,117 @@ class Game(object): # move this to objects
 		music_SPRITES = Spritesheet("tiles/Music.png")
 		chests_SPRITES = Spritesheet("tiles/Chest0.png")
 
-		player_IMG = characters_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		wall_IMG = walls_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE))
-		floor_IMG = pygame.image.load("tiles/floor.png")
-		empty_spaceIMG = walls_SPRITES.image_at((0, constants.TILE_SIZE * 2, constants.TILE_SIZE, constants.TILE_SIZE))
-		worm_IMG = enemies_pests_SPRITES.image_at((7 * constants.TILE_SIZE, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 22 12
-		abhorrent_creature_IMG = misc_enemies_SPRITES.image_at((0, 5 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 28 27
-		corpse_IMG = corpses_SPRITES.image_at((4 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		inventory_slot_IMG = ui_two_SPRITES.image_at((8 * constants.TILE_SIZE, 10 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE))
-		great_steel_long_sword_IMG = long_weapons.image_at((0, constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		lantern_IMG = light_SPRITES.image_at((3 * constants.TILE_SIZE, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		goblin_IMG = characters_SPRITES.image_at((0 * constants.TILE_SIZE, 12 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		magic_bell_IMG = music_SPRITES.image_at((constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		noise_indicator_IMG = ui_two_SPRITES.image_at((12 * constants.TILE_SIZE, 3 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		chest_IMG = chests_SPRITES.image_at((constants.TILE_SIZE, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+#		+----------------------------------------------------------------------------Monsters and map structures----------------------------------------------------------------==-------------------+
+		player_IMG = characters_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 0
+		wall_IMG = walls_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE)) # 1
+		floor_IMG = pygame.image.load("tiles/floor.png") # 2 
+		corpse_IMG = corpses_SPRITES.image_at((4 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 6
+		empty_spaceIMG = walls_SPRITES.image_at((0, constants.TILE_SIZE * 2, constants.TILE_SIZE, constants.TILE_SIZE)) # 4 
+		worm_IMG = enemies_pests_SPRITES.image_at((7 * constants.TILE_SIZE, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 4 
+		abhorrent_creature_IMG = misc_enemies_SPRITES.image_at((0, 5 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 5
+		goblin_IMG = characters_SPRITES.image_at((0 * constants.TILE_SIZE, 12 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 25
+#		+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+#		+-----------------------------------------------------------------------------Potions----------------------------------------------------------------====------------------------------------+
+		hp_potion_IMG = potions_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 13
+		ultimate_hp_potion_IMG = potions_SPRITES.image_at((1 * constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 21
+		scroll_of_death_IMG = scrolls_SPRITES.image_at((5 * constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 14
+		scroll_of_uncontrolled_teleportation_IMG = scrolls_SPRITES.image_at((4 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 17
+		potion_of_death_IMG = potions_SPRITES.image_at((0, constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 28
+		potion_of_confusion_IMG = potions_SPRITES.image_at((constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 30
+#		+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+#		+-----------------------------------------------------------------------------Weapons--------------------------------------------------------------------------------------------------------+
+		great_steel_long_sword_IMG = long_weapons.image_at((0, constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 													# 22
+		iron_sword_IMG = medium_weapons_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 																		# 19
+#		+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+#		+------------------------------------------------------------------------------Armor---------------------------------------------------------------------------------------------------------+
+		bronze_armor_IMG = armor_SPRITES.image_at((0, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 															# 16
+		copper_armor_IMG = armor_SPRITES.image_at((constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 															# 32
+		steel_armor_IMG = armor_SPRITES.image_at((2 * constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 															# 33
+		hardened_steel_armor_IMG = armor_SPRITES.image_at((4 * constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 												# 34
+		crystal_armor_IMG = armor_SPRITES.image_at((7 * constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 									# 18
+		crown_IMG = helmets_SPRITES.image_at((2 * constants.TILE_SIZE, 3 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 										# 20
+		cloak_of_invisibility_IMG = armor_SPRITES.image_at((constants.TILE_SIZE, 5 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 								# 29
+#		+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+#		+------------------------------------------------------------------------------Misc----------------------------------------------------------------------------------------------------------+
+		lantern_IMG = light_SPRITES.image_at((3 * constants.TILE_SIZE, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 																# 23
+		oil_IMG = potions_SPRITES.image_at((2 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 											# 24
+		chest_IMG = chests_SPRITES.image_at((constants.TILE_SIZE, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 																	# 31
+#		+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+#		+----------------------------------------------------------------------------UI Images-----------------------------------------------------------------------------------+
+		ui_MESSAGE_HORIZONTAL = ui_SPRITES.image_at((constants.TILE_SIZE, constants.TILE_SIZE * 3, constants.TILE_SIZE, constants.TILE_SIZE)) 													# 7
+		ui_MESSAGE_TOP_LEFT = ui_SPRITES.image_at((0, constants.TILE_SIZE * 3, constants.TILE_SIZE, constants.TILE_SIZE))												 						# 8
+		ui_MESSAGE_BOTTOM_LEFT = ui_SPRITES.image_at((0, constants.TILE_SIZE * 5, constants.TILE_SIZE, constants.TILE_SIZE))												 					# 9
+		ui_MESSAGE_TOP_RIGHT = ui_SPRITES.image_at((2 * constants.TILE_SIZE, constants.TILE_SIZE * 3, constants.TILE_SIZE, constants.TILE_SIZE))												# 10
+		ui_MESSAGE_BOTTOM_RIGHT = ui_SPRITES.image_at((2 * constants.TILE_SIZE, constants.TILE_SIZE * 5, constants.TILE_SIZE, constants.TILE_SIZE))												# 11
+		ui_MESSAGE_VERTICAL = ui_SPRITES.image_at((0, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE))												 						# 12
+		inventory_slot_IMG = ui_two_SPRITES.image_at((8 * constants.TILE_SIZE, 10 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE))												# 15
+		noise_indicator_IMG = ui_two_SPRITES.image_at((12 * constants.TILE_SIZE, 3 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 								# 27
+#		+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 
-		hp_potion_IMG = potions_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		ultimate_hp_potion_IMG = potions_SPRITES.image_at((1 * constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		scroll_of_death_IMG = scrolls_SPRITES.image_at((5 * constants.TILE_SIZE, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		scroll_of_uncontrolled_teleportation_IMG = scrolls_SPRITES.image_at((4 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		oil_IMG = potions_SPRITES.image_at((2 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		potion_of_death_IMG = potions_SPRITES.image_at((0, constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		potion_of_confusion_IMG = potions_SPRITES.image_at((constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
+		magic_bell_IMG = None
 
-
-		iron_sword_IMG = medium_weapons_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-
-
-		bronze_armor_IMG = armor_SPRITES.image_at((0, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		crystal_armor_IMG = armor_SPRITES.image_at((7 * constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		crown_IMG = helmets_SPRITES.image_at((2 * constants.TILE_SIZE, 3 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-		cloak_of_invisibility_IMG = armor_SPRITES.image_at((constants.TILE_SIZE, 5 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1)
-
-
-		ui_MESSAGE_HORIZONTAL = ui_SPRITES.image_at((constants.TILE_SIZE, constants.TILE_SIZE * 3, constants.TILE_SIZE, constants.TILE_SIZE))
-		ui_MESSAGE_TOP_LEFT = ui_SPRITES.image_at((0, constants.TILE_SIZE * 3, constants.TILE_SIZE, constants.TILE_SIZE))
-		ui_MESSAGE_BOTTOM_LEFT = ui_SPRITES.image_at((0, constants.TILE_SIZE * 5, constants.TILE_SIZE, constants.TILE_SIZE))
-		ui_MESSAGE_TOP_RIGHT = ui_SPRITES.image_at((2 * constants.TILE_SIZE, constants.TILE_SIZE * 3, constants.TILE_SIZE, constants.TILE_SIZE))
-		ui_MESSAGE_BOTTOM_RIGHT = ui_SPRITES.image_at((2 * constants.TILE_SIZE, constants.TILE_SIZE * 5, constants.TILE_SIZE, constants.TILE_SIZE))
-		ui_MESSAGE_VERTICAL = ui_SPRITES.image_at((0, 4 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE))
 
 		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
 				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG,
 				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG,
-				ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG, goblin_IMG, magic_bell_IMG, noise_indicator_IMG, potion_of_death_IMG, cloak_of_invisibility_IMG, potion_of_confusion_IMG, chest_IMG]
-																														#  27				28					29							30						31
+				ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG, goblin_IMG, magic_bell_IMG, noise_indicator_IMG, potion_of_death_IMG, cloak_of_invisibility_IMG, potion_of_confusion_IMG, chest_IMG,
+				copper_armor_IMG, steel_armor_IMG, hardened_steel_armor_IMG]
 
-	def set_map(self):
+				# Last: 34
+																														
+
+	def set_map(self, _map):
 
 		final_map = [[Tile(True, block_sight=True, is_map_structure=True) for x in range(constants.MAP_WIDTH)] for y in range(constants.MAP_HEIGHT)]
 
-		for x in range(0, 30):
-			for y in range(0, 30):
-				if self.current_raw_map[x][y] == '.':
+		for x in range(0, constants.MAP_WIDTH):
+			for y in range(0, constants.MAP_HEIGHT):
+				if _map[x][y] == '.':
 					final_map[x][y] = Tile(block_movement=False, block_sight=False)
 
 		return final_map
 
+	def start_new_game(self):
+		global player
+
+		set_player = False
+
+		self.gen_new_map()
+
+		while not set_player:
+			x = random.randint(1, constants.MAP_WIDTH - 1)
+			y = random.randint(1, constants.MAP_HEIGHT - 1)
+
+			if self.map[x][y].block_sight:
+				continue
+			else:
+				player_fighter_component = objects.Fighter(500, 3, 5)
+				player = objects.Object(x, y, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=3)
+				player.description = constants.player_DESCRIPTION
+				player.fighter.modificators.update(constants.mods)
+				player.fighter.modificators['mod_to_be_heard'] = 0
+				player.fighter.modificators["mod_to_be_seen"] = 100
+				player.knee_health = 10
+				self.objects.append(player)
+
+				set_player = True
+
+		self.spawn_objects()
 
 	def init_pygame(self):
-		global scr, player, font
+		global scr, font
 
 		pygame.init()
 		pygame.font.init()
 		pygame.mouse.set_visible(True)
 		font = pygame.font.Font("Px437_IBM_VGA8.ttf", constants.FONT_SIZE)
-		subscript_font = pygame.font.Font("Px437_IBM_VGA8.ttf", 8) # font will be used to tell how many of exact items are in the inventory | NOT USED
+		subscript_font = pygame.font.Font("Px437_IBM_VGA8.ttf", 8) # font to render a + sign
 
 		scr = pygame.display.set_mode((constants.SCREEN_WIDTH, constants.SCREEN_HEIGHT))#, pygame.FULLSCREEN)
 
@@ -142,19 +189,37 @@ class Game(object): # move this to objects
 
 		self.images = self.get_images()
 
-		player_fighter_component = objects.Fighter(500, 3, 5)
-		# sprites in dict too
-		player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=3)
-		player.description = constants.player_DESCRIPTION
-		player.fighter.modificators.update(constants.mods)
-		player.fighter.modificators['mod_to_be_heard'] = -400
-		player.fighter.modificators["mod_to_be_seen"] = 100
-		#player.hearing = 1 change to modificator
-		player.knee_health = 10
+		self.start_new_game()
 
-		worm_AI = objects.SimpleAI()
-		worm_fighter_component = objects.Fighter(2, 2, 1)
-		worm = objects.Object(1, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component)
+		self.fov_map = field_of_view.set_fov(self.fov_map)
+		self.ui = UI(player.fighter, self.images, 'game_screen')
+		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map, radius=player.fighter.max_light_radius)
+
+		lantern_equipment_component = objects.Equipment(slot='accessory', charges=200 ,light_radius_bonus=6, activation_func=use_functions.light_lantern, deactivation_string="turns off", wear_off_string="run out of oil")
+		lantern_item_component = objects.Item(use_func=use_functions.equip, name='lantern', equipment=lantern_equipment_component, UI=self.ui)
+		oil_item_component = objects.Item(use_func=use_functions.refill_lantern, can_break=True, oil_value=200)
+		lantern = objects.Object(player.x+1, player.y, self.images[23], 'lantern', item=lantern_item_component)
+		oil = objects.Object(player.x+2, player.y, self.images[24], 'oil', item=oil_item_component)
+
+		player.fighter.inventory.append(lantern)
+		player.fighter.inventory.append(oil)
+		self.ui.add_item_to_UI(lantern)
+		self.ui.add_item_to_UI(oil)
+
+
+		#player_fighter_component = objects.Fighter(500, 3, 5)
+		# sprites in dict too
+		#player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=3)
+		#player.description = constants.player_DESCRIPTION
+		#player.fighter.modificators.update(constants.mods)
+		#player.fighter.modificators['mod_to_be_heard'] = -400
+		#player.fighter.modificators["mod_to_be_seen"] = 100
+		#player.hearing = 1 change to modificator
+		#player.knee_health = 10
+
+		#worm_AI = objects.SimpleAI()
+		#worm_fighter_component = objects.Fighter(2, 2, 1)
+		#worm = objects.Object(1, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component)
 
 		#for variety only, demo implementation
 		#for n in range(constants.MAX_ENEMIES + 20):
@@ -172,112 +237,107 @@ class Game(object): # move this to objects
 		#		self.objects.append(gobleen)
  
 
- 		abhorrent_creature_BRAIN = objects.FSM()
-		abhorrent_creature_AI = objects.NoiseAI(hearing_chance=100, brain=abhorrent_creature_BRAIN)
-		abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
-		abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI, initial_seeing_chance=20)
-		abhorrent_creature.sounds['sound_walk'] = "deep low humming."
-		abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
-		abhorrent_creature.fighter.modificators.update(constants.mods)
+ 		#abhorrent_creature_BRAIN = objects.FSM()
+		#abhorrent_creature_AI = objects.NoiseAI(hearing_chance=100, brain=abhorrent_creature_BRAIN)
+		#abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
+		#abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI, initial_seeing_chance=20)
+		#abhorrent_creature.sounds['sound_walk'] = "deep low humming."
+		#abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
+		#abhorrent_creature.fighter.modificators.update(constants.mods)
 
-		gobleen_BRAIN = objects.FSM()
-		gobleen_ai = objects.NoiseAI(hearing_chance=60, brain=gobleen_BRAIN)
-		gobleen_fighter_component = objects.Fighter(25, 10, 10)
-		gobleen = objects.Object(24, 11, self.images[25], 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component, initial_seeing_chance=90) # 2 7
-		gobleen.sounds['sound_walk'] = "mumbling and shuffling."
-		gobleen.fighter.modificators.update(constants.mods)
+		#gobleen_BRAIN = objects.FSM()
+		#gobleen_ai = objects.NoiseAI(hearing_chance=60, brain=gobleen_BRAIN)
+		#gobleen_fighter_component = objects.Fighter(25, 10, 10)
+		#gobleen = objects.Object(24, 11, self.images[25], 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component, initial_seeing_chance=90) # 2 7
+		#gobleen.sounds['sound_walk'] = "mumbling and shuffling."
+		#gobleen.fighter.modificators.update(constants.mods)
 		#gobleen.fighter.modificators["mod_to_seeing"] += 70
 		#magic_bell = objects.Object(24, 11, self.images[26], 'Magic Bell', blocks=True, block_sight=True)
 		#second_magic_bell = objects.Object(24, 17, self.images[26], 'Magic Bell', blocks=True, block_sight=True)
 
-		for n in range(200):
-			rand_x = random.randrange(constants.MAP_WIDTH)
-			rand_y = random.randrange(constants.MAP_HEIGHT)
+		#for n in range(200):
+		#	rand_x = random.randrange(constants.MAP_WIDTH)
+		#	rand_y = random.randrange(constants.MAP_HEIGHT)
 
-			if not self.map[rand_x][rand_y].block_sight:
-				hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, heal_value=5)
-				hp_potion = objects.Object(player.x + 1, player.y, self.images[constants.IMAGES_POTION_HP], 'healing potion', item=hp_potion_item_component)
-				self.objects.append(hp_potion)
+		#	if not self.map[rand_x][rand_y].block_sight:
+		#		hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, heal_value=5)
+		#		hp_potion = objects.Object(player.x + 1, player.y, self.images[constants.IMAGES_POTION_HP], 'healing potion', item=hp_potion_item_component)
+		#		self.objects.append(hp_potion)
 
-		scroll_of_death_item_component = objects.Item(targetable=True, use_func=use_functions.instant_death)
-		scroll_of_death = objects.Object(player.x + 2, player.y, self.images[constants.IMAGES_SCROLL_OF_DEATH], 'scroll of death', item=scroll_of_death_item_component)
+		#scroll_of_death_item_component = objects.Item(targetable=True, use_func=use_functions.instant_death)
+		#scroll_of_death = objects.Object(player.x + 2, player.y, self.images[constants.IMAGES_SCROLL_OF_DEATH], 'scroll of death', item=scroll_of_death_item_component)
 
-		ultimate_hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, heal_value=50)
-		ultimate_hp_potion = objects.Object(player.x + 3, player.y, self.images[21], 'ultimate healing potion', item=ultimate_hp_potion_item_component)
+		#ultimate_hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, heal_value=50)
+		#ultimate_hp_potion = objects.Object(player.x + 3, player.y, self.images[21], 'ultimate healing potion', item=ultimate_hp_potion_item_component)
 
-		potion_of_death_item_component = objects.Item(use_func=use_functions.instant_death, can_break=True)
-		potion_of_death = objects.Object(player.x + 4, player.y + 1, self.images[28], 'potion of death', item=potion_of_death_item_component)
-		potion_of_confusion_item_component = objects.Item(use_func=use_functions.confuse, can_break=True)
-		potion_of_confusion = objects.Object(player.x + 1, player.y + 3, self.images[30], 'potion of confusion', item=potion_of_confusion_item_component)
+		#potion_of_death_item_component = objects.Item(use_func=use_functions.instant_death, can_break=True)
+		#potion_of_death = objects.Object(player.x + 4, player.y + 1, self.images[28], 'potion of death', item=potion_of_death_item_component)
+		#potion_of_confusion_item_component = objects.Item(use_func=use_functions.confuse, can_break=True)
+		#potion_of_confusion = objects.Object(player.x + 1, player.y + 3, self.images[30], 'potion of confusion', item=potion_of_confusion_item_component)
 
-		oil_item_component = objects.Item(use_func=use_functions.refill_lantern, can_break=True, oil_value=500)
-		oil = objects.Object(player.x + 3, player.y + 2, self.images[24], 'oil', item=oil_item_component)
-
-
-		for n in range(5):
-			scroll_of_uncontrolled_teleportation_item_component = objects.Item(use_func=use_functions.uncontrolled_teleportation, map=self.map)
-			scroll_of_uncontrolled_teleportation = objects.Object(player.x + 2, player.y+1, self.images[17], 'scroll of uncontrolled teleportation', item=scroll_of_uncontrolled_teleportation_item_component)
-			self.objects.append(scroll_of_uncontrolled_teleportation)
+		#oil_item_component = objects.Item(use_func=use_functions.refill_lantern, can_break=True, oil_value=500)
+		#oil = objects.Object(player.x + 3, player.y + 2, self.images[24], 'oil', item=oil_item_component)
 
 
-		self.ui = UI(player.fighter, self.images, 'game_screen')
-		bronze_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=4)
-		bronze_armor_item_component = objects.Item(use_func=use_functions.equip, name='bronze breastplate', equipment=bronze_armor_equipment_component, UI=self.ui, weight=41)
-		bronze_armor = objects.Object(player.x + 1, player.y + 1, self.images[16], 'bronze breastplate', item=bronze_armor_item_component)
+		#for n in range(5):
+		#	scroll_of_uncontrolled_teleportation_item_component = objects.Item(use_func=use_functions.uncontrolled_teleportation, map=self.map)
+		#	scroll_of_uncontrolled_teleportation = objects.Object(player.x + 2, player.y+1, self.images[17], 'scroll of uncontrolled teleportation', item=scroll_of_uncontrolled_teleportation_item_component)
+		#	self.objects.append(scroll_of_uncontrolled_teleportation)
 
-		crystal_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=50)
-		crystal_armor_item_component = objects.Item(use_func=use_functions.equip, name='crystal breastplate', equipment=crystal_armor_equipment_component, UI=self.ui, weight=51)
-		crystal_armor = objects.Object(player.x, player.y + 1, self.images[18], 'crystal breastplate', item=crystal_armor_item_component)
+		#bronze_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=4)
+		#bronze_armor_item_component = objects.Item(use_func=use_functions.equip, name='bronze breastplate', equipment=bronze_armor_equipment_component, UI=self.ui, weight=41)
+		#bronze_armor = objects.Object(player.x + 1, player.y + 1, self.images[16], 'bronze breastplate', item=bronze_armor_item_component)
 
-		crown_equipment_component = objects.Equipment(slot='helmet', defence_bonus=2, max_health_bonus=100)
-		crown_item_component = objects.Item(use_func=use_functions.equip, name='golden crown of great health', equipment=crown_equipment_component, UI=self.ui)
-		crown = objects.Object(player.x + 3, player.y + 1, self.images[20], 'golden crown of great health', item=crown_item_component)
+		#crystal_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=50)
+		#crystal_armor_item_component = objects.Item(use_func=use_functions.equip, name='crystal breastplate', equipment=crystal_armor_equipment_component, UI=self.ui, weight=51)
+		#crystal_armor = objects.Object(player.x, player.y + 1, self.images[18], 'crystal breastplate', item=crystal_armor_item_component)
 
-		cloak_of_invisibility_equipment_component = objects.Equipment(slot='cloak', defence_bonus=3, chance_to_be_seen_modificator=-200)
-		cloak_of_invisibility_item_component = objects.Item(use_func=use_functions.equip, name='cloak of invisibility', equipment=cloak_of_invisibility_equipment_component, UI=self.ui)
-		cloak_of_invibility = objects.Object(player.x + 4, player.y + 2, self.images[29], 'cloak of invisibility', item=cloak_of_invisibility_item_component)
+		#crown_equipment_component = objects.Equipment(slot='helmet', defence_bonus=2, max_health_bonus=100)
+		#crown_item_component = objects.Item(use_func=use_functions.equip, name='golden crown of great health', equipment=crown_equipment_component, UI=self.ui)
+		#crown = objects.Object(player.x + 3, player.y + 1, self.images[20], 'golden crown of great health', item=crown_item_component)
+
+		#cloak_of_invisibility_equipment_component = objects.Equipment(slot='cloak', defence_bonus=3, chance_to_be_seen_modificator=-200)
+		#cloak_of_invisibility_item_component = objects.Item(use_func=use_functions.equip, name='cloak of invisibility', equipment=cloak_of_invisibility_equipment_component, UI=self.ui)
+		#cloak_of_invibility = objects.Object(player.x + 4, player.y + 2, self.images[29], 'cloak of invisibility', item=cloak_of_invisibility_item_component)
 
 
-		iron_sword_equipment_component = objects.Equipment(slot='right_hand', power_bonus=10) # for now fixed hand
-		iron_sword_item_component = objects.Item(use_func=use_functions.equip, name='iron sword', equipment=iron_sword_equipment_component, UI=self.ui)
-		iron_sword = objects.Object(player.x + 1, player.y - 1, self.images[19], 'iron sword', item=iron_sword_item_component)
-		great_steel_long_sword_equipment_component = objects.Equipment(slot='left_hand', power_bonus=30)
-		great_steel_long_sword_item_component = objects.Item(use_func=use_functions.equip, name='great steel long sword', equipment=great_steel_long_sword_equipment_component, UI=self.ui)
-		great_steel_long_sword = objects.Object(player.x + 1, player.y + 2, self.images[22], 'great steel long sword', item=great_steel_long_sword_item_component)
+		#iron_sword_equipment_component = objects.Equipment(slot='right_hand', power_bonus=10) # for now fixed hand
+		#iron_sword_item_component = objects.Item(use_func=use_functions.equip, name='iron sword', equipment=iron_sword_equipment_component, UI=self.ui)
+		#iron_sword = objects.Object(player.x + 1, player.y - 1, self.images[19], 'iron sword', item=iron_sword_item_component)
+		#great_steel_long_sword_equipment_component = objects.Equipment(slot='left_hand', power_bonus=30)
+		#great_steel_long_sword_item_component = objects.Item(use_func=use_functions.equip, name='great steel long sword', equipment=great_steel_long_sword_equipment_component, UI=self.ui)
+		#great_steel_long_sword = objects.Object(player.x + 1, player.y + 2, self.images[22], 'great steel long sword', item=great_steel_long_sword_item_component)
 
-		lantern_equipment_component = objects.Equipment(slot='accessory', charges=700 ,light_radius_bonus=10, activation_func=use_functions.light_lantern, deactivation_string="turns off", wear_off_string="run out of oil")
-		lantern_item_component = objects.Item(use_func=use_functions.equip, name='lantern', equipment=lantern_equipment_component, UI=self.ui)
-		lantern = objects.Object(player.x + 2, player.y+2, self.images[23], 'lantern', item=lantern_item_component)
+		#lantern_equipment_component = objects.Equipment(slot='accessory', charges=700 ,light_radius_bonus=10, activation_func=use_functions.light_lantern, deactivation_string="turns off", wear_off_string="run out of oil")
+		#lantern_item_component = objects.Item(use_func=use_functions.equip, name='lantern', equipment=lantern_equipment_component, UI=self.ui)
+		#lantern = objects.Object(player.x + 2, player.y+2, self.images[23], 'lantern', item=lantern_item_component)
 
-		chest_loot = []
+		#chest_loot = []
 
-		for n in range(10):
-			potion_of_death_item_component = objects.Item(use_func=use_functions.instant_death, can_break=True)
-			potion_of_death = objects.Object(player.x + 4, player.y + 1, self.images[28], 'potion of death', item=potion_of_death_item_component)
-			chest_loot.append(potion_of_death)
+		#for n in range(10):
+		#	potion_of_death_item_component = objects.Item(use_func=use_functions.instant_death, can_break=True)
+		#	potion_of_death = objects.Object(player.x + 4, player.y + 1, self.images[28], 'potion of death', item=potion_of_death_item_component)
+		#	chest_loot.append(potion_of_death)
 
-		chest_container_component = objects.Container(loot=chest_loot)
-		chest = objects.Object(player.x + 2, player.y + 4, self.images[31], 'chest', container=chest_container_component)
+		#chest_container_component = objects.Container(loot=chest_loot)
+		#chest = objects.Object(player.x + 2, player.y + 4, self.images[31], 'chest', container=chest_container_component)
 
-		self.objects.append(player)
-		self.objects.append(abhorrent_creature)
-		self.objects.append(scroll_of_death)
-		self.objects.append(bronze_armor)
-		self.objects.append(crystal_armor)
-		self.objects.append(iron_sword)
-		self.objects.append(crown)
-		self.objects.append(ultimate_hp_potion)
-		self.objects.append(great_steel_long_sword)
-		self.objects.append(lantern)
-		self.objects.append(oil)
-		self.objects.append(gobleen)
-		self.objects.append(potion_of_death)
-		self.objects.append(cloak_of_invibility)
-		self.objects.append(potion_of_confusion)
-		self.objects.append(chest)
-
-		self.fov_map = field_of_view.set_fov(self.fov_map)
-		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map, radius=player.fighter.max_light_radius)
+		#self.objects.append(player)
+		#self.objects.append(abhorrent_creature)
+		#self.objects.append(scroll_of_death)
+		#self.objects.append(bronze_armor)
+		#self.objects.append(crystal_armor)
+		#self.objects.append(iron_sword)
+		#self.objects.append(crown)
+		#self.objects.append(ultimate_hp_potion)
+		#self.objects.append(great_steel_long_sword)
+		#self.objects.append(lantern)
+		#self.objects.append(oil)
+		#self.objects.append(gobleen)
+		#self.objects.append(potion_of_death)
+		#self.objects.append(cloak_of_invibility)
+		#self.objects.append(potion_of_confusion)
+		#self.objects.append(chest)
 
 	def handle_keys(self):
 
@@ -463,7 +523,7 @@ class Game(object): # move this to objects
 		player.send_message("For more help press '?'.")
 		player.send_message("You descend into your own basement.")
 		self.listen_for_messagess(player)
-		noises = None
+		noises = None # redundant?
 
 		turn = 'player_turn'
 
@@ -478,8 +538,6 @@ class Game(object): # move this to objects
 
 					player_action = self.handle_keys()
 					mouse_action = self.handle_mouse()
-
-					#noises = objects.player_listen_to_noise(player)
 
 					if player_action == 'look':
 						noises = player.heard_noises
@@ -498,6 +556,8 @@ class Game(object): # move this to objects
 					self.state = self.check_for_player_death()
 
 					if player_action == 'took_turn' or mouse_action == 'took_turn':
+
+						#print player.fighter.modificators['mod_to_be_heard']
 
 
 						player.fighter.manage_fighter()
@@ -622,23 +682,84 @@ class Game(object): # move this to objects
 				obj.draw(scr)
 			obj.clear_messages()
 
+	def place_items(self, items_list):
+
+		if len(items_list) > 0:
+
+			for item_dict in items_list:
+				name = [x for x in item_dict.keys() if x != 'data'][0]
+				img = item_dict['data']
+
+				placed = False
+
+				while not placed:
+					random_x = random.randint(1, constants.MAP_WIDTH - 1)
+					random_y = random.randint(1, constants.MAP_HEIGHT - 1)
+
+					if self.map[random_x][random_y].block_sight:
+						continue
+					else:
+						item_component = item_dict[name]
+
+						item = objects.Object(random_x, random_y, self.images[img], name, item=item_component)
+						self.objects.append(item)
+						placed = True
+
+
+	def place_monsters(self, monsters):
+
+		for mon in monsters:
+
+			HP, ATTACK, DEFENCE, NAME, SOUND_WALK, MOD_TO_HEARING, MOD_TO_SEEING, AI, SPAWN_RANGE, SPAWN_CHANCE, IMAGE_INDEX, MOD_TO_BE_SEEN, MOD_TO_BE_HEARD = mon
+
+			if AI == 'noise_AI':	
+				brain = objects.FSM()
+				ai_component = objects.NoiseAI(brain)
+
+			else:
+				ai_component = objects.SimpleAI()
+
+			placed = False
+
+			while not placed:
+
+				random_x = random.randint(1, constants.MAP_WIDTH - 1)
+				random_y = random.randint(1, constants.MAP_HEIGHT - 1)
+
+				if self.map[random_x][random_y].block_sight:
+					continue
+				else:
+					fighter_component = objects.Fighter(HP, ATTACK, DEFENCE)
+					monster = objects.Object(random_x, random_y, self.images[IMAGE_INDEX], NAME, blocks=True, block_sight=True, fighter=fighter_component, ai=ai_component)
+					monster.fighter.modificators.update(constants.mods)
+					monster.fighter.modificators['mod_to_seeing'] = MOD_TO_SEEING
+					monster.fighter.modificators['mod_to_be_seen'] = MOD_TO_BE_SEEN
+					monster.fighter.modificators['mod_to_hearing'] = MOD_TO_HEARING
+					monster.fighter.modificators['mod_to_be_heard'] = MOD_TO_BE_HEARD
+
+					self.objects.append(monster)
+					placed = True
+
 
 	def spawn_objects(self):
-
-		number_of_enemies = constants.MAX_ENEMIES
 
 		# first player
 		# stairs
 		# secondly objects
 		# thirdly monsters
 
-		while True:
+		number_of_enemies = constants.MAX_ENEMIES
 
-			# get a random number
-			# check if it's not wall
-			# check if enemy has a chance to spawn
-			# place
-			pass
+		breastplates = objects.gen_armor(self.level, objects.chest_armor, 'breastplate', use_functions.equip, 'material')
+		#print breastplates
+
+		self.place_items(breastplates)
+
+		monsters_to_place = objects.gen_monsters(self.level, objects.monsters, number_of_enemies)
+		#print monsters_to_place
+
+		self.place_monsters(monsters_to_place)
+
 
 	def check_for_death(self, obj):
 		if obj.fighter is not None and obj.name != player.name:
@@ -680,8 +801,6 @@ class Game(object): # move this to objects
 		pygame.display.flip()
 
 	def listen_for_messagess(self, obj):
-
-		print self.messages
 
 		# it has to remove that amount of messages, so the only 5 remains
 		if len(self.messages) <= 5:
@@ -834,21 +953,12 @@ class Game(object): # move this to objects
 
 		path_of_projectile = utils.bresenham_alg(player.x, player.y, destination[0], destination[1])
 
-		print item
-
-		# now: scroll through the map and check if it doesn't collide with an object or wall.
-
-
-		#print "player x,y: {0} {1}".format(player.x, player.y)
 		obj = self.return_obj_at_impact(path_of_projectile, item)
 		player.send_message("{0} throws {1}!".format(player.name.title(), item.name.title()))
 		player.noise_made['range'] = 10
 		player.noise_made['chance_to_be_heard'] = 1000 # + armor
 		player.noise_made['source'] = item
 		player.noise_made['sound_name'] = 'jeb'
-
-		print obj
-
 
 		if obj != 'didnt throw' and obj is not None:
 		
@@ -890,8 +1000,6 @@ class Game(object): # move this to objects
 				if item.item.can_break:
 					player.send_message("{0} shatters!".format(item.name.title()))
 				return
-
-
 
 	def return_obj_at_impact(self, path, item):
 
@@ -1173,6 +1281,7 @@ class UI(object): # move this to objects
 
 		slot = piece_of_equipment.item.equipment.slot
 		if self.equipment_places[slot][1] is None:
+			print 'd'
 			self.equipment_places[slot][1] = piece_of_equipment
 			self.remove_item_from_UI(piece_of_equipment.x, piece_of_equipment.y) # remove before moving (changing the coordinates) the item.
 			x = self.equipment_places[slot][0][0]
@@ -1377,7 +1486,7 @@ if __name__ == '__main__':
 # Step 2: - Core mechanics that will seperate my game from others
 # Lantern v and torches - increasing fov v refilling v - lantern is given at the beginning with one extra oil, and no lantern is spawned during the game
 # Lantern makes player more visible. <- Very important
-# Optimise code - make functions more general, input processing etc... and then: (the most important change i could add from that point is event queue - decide what is done in what order)
+# Optimise code - make functions more general, input processing etc... and then: (the most important change i could add from that point is event queue - decide what is done in what order) <- not needed
 # Noise AI - possible need for an A* algorithm DONE
 # Making noise, noise mechanic - either by shouting, tumbling over! or throwing!
 # Walking carefully - sneaking (crouching) Done, know I need to make the player scream if he crouches for too long. ("Pysio's legs hurt!") done
@@ -1392,7 +1501,7 @@ if __name__ == '__main__':
 
 # Step 3: - Polishing and roguelike elements such as permadeath, levels as well as menu etc.
 # Spawning player randomly, in way which he does not spawn in walls
-# Spawning enemies randomly, in way which they do not spawn in walls
+# Spawning enemies and objects randomly, in way which they do not spawn in walls
 # Identifying! - Aside from healing potion - this will be recognizable by player from the beginning, because he will receive 1 from mage. | Use random sprite for potion - that way, it will not be recognizable.
 # Help in game - "?"
 # Artifact items!
@@ -1403,7 +1512,6 @@ if __name__ == '__main__':
 # Endgame - [?] and intro text
 # Main menu
 # Home Level
-
 
 # TO FIX:
 # 1. Change FONT_SIZE to TILE_SIZE when necessary
@@ -1429,8 +1537,6 @@ if __name__ == '__main__':
 # Make enemies that drop special items and special branches! for example: portal to the shadow realm with monster that drops scroll that can stun evil demons for 10 rounds.
 # And with all that, keep the mystery and narrative theme going on. (Not shadow realm, but "you step into the portal, swirling and shaking you transmigrate beyond the realms of worlds!")
 # When overburdened, player might tumble and make noise
-
-
 
 # V - Deprecated
 # Noise AI (Mechanic: the lower (lvl) the noise detected, the better the hearing is):
@@ -1494,6 +1600,9 @@ if __name__ == '__main__':
 # WHEN THROWN ON THE WALL, ITEM DOESN'T BRAKE <- Fixed
 # Something is wrong with taking from container - last item stays <- Fixed
 # Throwing an item that monster can hear seems to be fixed.
+# Looks like we have to store the previous value of noise (previous place) when player waits, because monsters seems to stop chasing the player when he waits.
+# Make so, that knees regenerate faster each turn (and then reset that).
+# Add damage to thrown items.
 
 # v 0.29 - Demo version
 #		In-game help.
@@ -1504,3 +1613,7 @@ if __name__ == '__main__':
 #		Demo version - simple procedural progression of items and monsters, 7 levels <- this first, next menu - very important, we have to know if it is at all playable
 #		Simple Menu without intro, but with [not in demo] classes except Warrior.
 #		Debug mode - this map that I'm testing things on.
+#		Monster dropping items
+#		
+#		1) Generating random map, but save that debug map
+#		2) Saving.
