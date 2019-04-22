@@ -8,12 +8,14 @@ import objects
 import utils
 import use_functions
 import textwrap
+import cPickle as pickle
 from spritesheet import Spritesheet
 from map_utils import Tile
 from gen_map import generate_map_list
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
+FADED_WHITE = (100, 100, 100) # for menu and not chosen options.
 RED = (200, 0, 0)
 LIGHT_RED = (255, 0, 0)
 GREEN = (3, 172, 37)
@@ -24,7 +26,6 @@ class Game(object): # move this to objects
 
 	def __init__(self, state=None):
 		self.state = state
-		self.debug_map = self.take_raw_map_from_file()
 		self.map = None 
 		self.images = []
 		self.objects = []
@@ -34,47 +35,51 @@ class Game(object): # move this to objects
 		self.ui = None
 		self.world = "Dungeon" # to keep the track of worlds
 		self.level = 1
+		self.debug = False
 
 
 	def take_raw_map_from_file(self, file="map.txt"):
 		map_list = []
 		line = ""
-		with open(file, "r") as game_map: # change that, so it doesn't use text file
+		with open(file, "r") as game_map: 
 			for n in range(0, constants.MAP_WIDTH):
 				line = game_map.readline()
 				map_list.append(line)
 		return map_list		
 
+	def gen_new_map(self, debug=False):
 
-	def gen_new_map(self):
-
-		raw_map_fom_list = generate_map_list()
+		if not debug:
+			raw_map_fom_list = generate_map_list() # self.debug_map FOR DEBUG MAP
+		else:
+			self.debug = True
+			raw_map_fom_list = self.take_raw_map_from_file()
 
 		self.map = self.set_map(raw_map_fom_list)
 
 	def get_images(self):
 
-		characters_SPRITES = Spritesheet("tiles/Player0.png")
-		walls_SPRITES = Spritesheet("tiles/Tile.png")
-		enemies_pests_SPRITES = Spritesheet("tiles/Pest0.png")
-		misc_enemies_SPRITES = Spritesheet("tiles/Misc0.png")
-		corpses_SPRITES = Spritesheet("tiles/Flesh.png")
-		ui_SPRITES = Spritesheet("tiles/Wall.png")
-		potions_SPRITES = Spritesheet("tiles/Potion.png")
-		scrolls_SPRITES = Spritesheet("tiles/Scroll.png")
-		ui_two_SPRITES = Spritesheet("tiles/GUI0.png")
-		armor_SPRITES = Spritesheet("tiles/Armor.png")
-		medium_weapons_SPRITES = Spritesheet("tiles/MedWep.png")
-		helmets_SPRITES = Spritesheet("tiles/Hat.png")
-		long_weapons = Spritesheet("tiles/LongWep.png")
-		light_SPRITES = Spritesheet("tiles/Light.png")
-		music_SPRITES = Spritesheet("tiles/Music.png")
-		chests_SPRITES = Spritesheet("tiles/Chest0.png")
+		characters_SPRITES = Spritesheet("data/tiles/Player0.png")
+		walls_SPRITES = Spritesheet("data/tiles/Tile.png")
+		enemies_pests_SPRITES = Spritesheet("data/tiles/Pest0.png")
+		misc_enemies_SPRITES = Spritesheet("data/tiles/Misc0.png")
+		corpses_SPRITES = Spritesheet("data/tiles/Flesh.png")
+		ui_SPRITES = Spritesheet("data/tiles/Wall.png")
+		potions_SPRITES = Spritesheet("data/tiles/Potion.png")
+		scrolls_SPRITES = Spritesheet("data/tiles/Scroll.png")
+		ui_two_SPRITES = Spritesheet("data/tiles/GUI0.png")
+		armor_SPRITES = Spritesheet("data/tiles/Armor.png")
+		medium_weapons_SPRITES = Spritesheet("data/tiles/MedWep.png")
+		helmets_SPRITES = Spritesheet("data/tiles/Hat.png")
+		long_weapons = Spritesheet("data/tiles/LongWep.png")
+		light_SPRITES = Spritesheet("data/tiles/Light.png")
+		music_SPRITES = Spritesheet("data/tiles/Music.png")
+		chests_SPRITES = Spritesheet("data/tiles/Chest0.png")
 
 #		+----------------------------------------------------------------------------Monsters and map structures----------------------------------------------------------------==-------------------+
 		player_IMG = characters_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 0
 		wall_IMG = walls_SPRITES.image_at((0, 0, constants.TILE_SIZE, constants.TILE_SIZE)) # 1
-		floor_IMG = pygame.image.load("tiles/floor.png") # 2 
+		floor_IMG = pygame.image.load("data/tiles/floor.png") # 2 
 		corpse_IMG = corpses_SPRITES.image_at((4 * constants.TILE_SIZE, 2 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 6
 		empty_spaceIMG = walls_SPRITES.image_at((0, constants.TILE_SIZE * 2, constants.TILE_SIZE, constants.TILE_SIZE)) # 4 
 		worm_IMG = enemies_pests_SPRITES.image_at((7 * constants.TILE_SIZE, 0, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) # 4 
@@ -98,9 +103,9 @@ class Game(object): # move this to objects
 
 #		+------------------------------------------------------------------------------Armor---------------------------------------------------------------------------------------------------------+
 		bronze_armor_IMG = armor_SPRITES.image_at((0, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 															# 16
-		copper_armor_IMG = armor_SPRITES.image_at((constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 															# 32
-		steel_armor_IMG = armor_SPRITES.image_at((2 * constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 															# 33
-		hardened_steel_armor_IMG = armor_SPRITES.image_at((4 * constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 												# 34
+		copper_armor_IMG = armor_SPRITES.image_at((constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 										# 32
+		steel_armor_IMG = armor_SPRITES.image_at((2 * constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 									# 33
+		hardened_steel_armor_IMG = armor_SPRITES.image_at((4 * constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 							# 34
 		crystal_armor_IMG = armor_SPRITES.image_at((7 * constants.TILE_SIZE, 6 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 									# 18
 		crown_IMG = helmets_SPRITES.image_at((2 * constants.TILE_SIZE, 3 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 										# 20
 		cloak_of_invisibility_IMG = armor_SPRITES.image_at((constants.TILE_SIZE, 5 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 								# 29
@@ -122,7 +127,6 @@ class Game(object): # move this to objects
 		inventory_slot_IMG = ui_two_SPRITES.image_at((8 * constants.TILE_SIZE, 10 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE))												# 15
 		noise_indicator_IMG = ui_two_SPRITES.image_at((12 * constants.TILE_SIZE, 3 * constants.TILE_SIZE, constants.TILE_SIZE, constants.TILE_SIZE), colorkey=-1) 								# 27
 #		+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-
 
 		magic_bell_IMG = None
 
@@ -175,7 +179,7 @@ class Game(object): # move this to objects
 		self.spawn_objects()
 
 	def init_pygame(self):
-		global scr, font
+		global scr, font, player
 
 		pygame.init()
 		pygame.font.init()
@@ -189,155 +193,150 @@ class Game(object): # move this to objects
 
 		self.images = self.get_images()
 
-		self.start_new_game()
+		self.ui = UI(None, self.images, 'game_screen')
 
-		self.fov_map = field_of_view.set_fov(self.fov_map)
-		self.ui = UI(player.fighter, self.images, 'game_screen')
-		field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map, radius=player.fighter.max_light_radius)
+		option = self.ui.choosable_menu(('New Game', 'Load Game', 'Debug Map', 'Quit'), title='Main Menu')
 
-		lantern_equipment_component = objects.Equipment(slot='accessory', charges=200 ,light_radius_bonus=6, activation_func=use_functions.light_lantern, deactivation_string="turns off", wear_off_string="run out of oil")
-		lantern_item_component = objects.Item(use_func=use_functions.equip, name='lantern', equipment=lantern_equipment_component, UI=self.ui)
-		oil_item_component = objects.Item(use_func=use_functions.refill_lantern, can_break=True, oil_value=200)
-		lantern = objects.Object(player.x+1, player.y, self.images[23], 'lantern', item=lantern_item_component)
-		oil = objects.Object(player.x+2, player.y, self.images[24], 'oil', item=oil_item_component)
+		if option == 'New Game':
 
-		player.fighter.inventory.append(lantern)
-		player.fighter.inventory.append(oil)
-		self.ui.add_item_to_UI(lantern)
-		self.ui.add_item_to_UI(oil)
+			self.start_new_game()
+			self.ui = None
 
+			self.fov_map = field_of_view.set_fov(self.fov_map)
+			self.ui = UI(player.fighter, self.images, 'game_screen')
+			field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map, radius=player.fighter.max_light_radius)
 
-		#player_fighter_component = objects.Fighter(500, 3, 5)
-		# sprites in dict too
-		#player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=3)
-		#player.description = constants.player_DESCRIPTION
-		#player.fighter.modificators.update(constants.mods)
-		#player.fighter.modificators['mod_to_be_heard'] = -400
-		#player.fighter.modificators["mod_to_be_seen"] = 100
-		#player.hearing = 1 change to modificator
-		#player.knee_health = 10
+			lantern_equipment_component = objects.Equipment(slot='accessory', charges=200 ,light_radius_bonus=6, activation_func=use_functions.light_lantern, deactivation_string="turns off", wear_off_string="run out of oil")
+			lantern_item_component = objects.Item(use_func=use_functions.equip, name='lantern', equipment=lantern_equipment_component, UI=self.ui)
+			oil_item_component = objects.Item(use_func=use_functions.refill_lantern, can_break=True, oil_value=200)
+			lantern = objects.Object(player.x+1, player.y, self.images[23], 'lantern', item=lantern_item_component)
+			oil = objects.Object(player.x+2, player.y, self.images[24], 'oil', item=oil_item_component)
 
-		#worm_AI = objects.SimpleAI()
-		#worm_fighter_component = objects.Fighter(2, 2, 1)
-		#worm = objects.Object(1, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component)
+			player.fighter.inventory.append(lantern)
+			player.fighter.inventory.append(oil)
+			self.ui.add_item_to_UI(lantern)
+			self.ui.add_item_to_UI(oil)
 
-		#for variety only, demo implementation
-		#for n in range(constants.MAX_ENEMIES + 20):
-		#	mon_x = random.randint(1, constants.MAP_WIDTH - 1)
-		#	mon_y = random.randint(1, constants.MAP_HEIGHT - 1)
-		#	if self.map[mon_x][mon_y].block_sight or (mon_x, mon_y) == (player.x, player.y):
-		#		continue
-		#	else:
-		#		gobleen_BRAIN = objects.FSM()
-		#		gobleen_ai = objects.NoiseAI(hearing_chance=60, brain=gobleen_BRAIN)
-		#		gobleen_fighter_component = objects.Fighter(25, 10, 10)
-		#		gobleen = objects.Object(mon_x, mon_y, self.images[25], 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component, initial_seeing_chance=90) # 2 7
-		#		gobleen.sounds['sound_walk'] = "mumbling and shuffling."
-		#		gobleen.fighter.modificators.update(constants.mods)
-		#		self.objects.append(gobleen)
- 
+		elif option == 'Debug Map':
+			self.gen_new_map(debug=True)
 
- 		#abhorrent_creature_BRAIN = objects.FSM()
-		#abhorrent_creature_AI = objects.NoiseAI(hearing_chance=100, brain=abhorrent_creature_BRAIN)
-		#abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
-		#abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI, initial_seeing_chance=20)
-		#abhorrent_creature.sounds['sound_walk'] = "deep low humming."
-		#abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
-		#abhorrent_creature.fighter.modificators.update(constants.mods)
+			player_fighter_component = objects.Fighter(500, 3, 5)
+			player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=3)
+			player.description = constants.player_DESCRIPTION
+			player.fighter.modificators.update(constants.mods)
+			player.fighter.modificators['mod_to_be_heard'] = 0
+			player.fighter.modificators["mod_to_be_seen"] = 100
+			player.knee_health = 10
 
-		#gobleen_BRAIN = objects.FSM()
-		#gobleen_ai = objects.NoiseAI(hearing_chance=60, brain=gobleen_BRAIN)
-		#gobleen_fighter_component = objects.Fighter(25, 10, 10)
-		#gobleen = objects.Object(24, 11, self.images[25], 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component, initial_seeing_chance=90) # 2 7
-		#gobleen.sounds['sound_walk'] = "mumbling and shuffling."
-		#gobleen.fighter.modificators.update(constants.mods)
-		#gobleen.fighter.modificators["mod_to_seeing"] += 70
-		#magic_bell = objects.Object(24, 11, self.images[26], 'Magic Bell', blocks=True, block_sight=True)
-		#second_magic_bell = objects.Object(24, 17, self.images[26], 'Magic Bell', blocks=True, block_sight=True)
+			worm_AI = objects.SimpleAI()
+			worm_fighter_component = objects.Fighter(2, 2, 1)
+			worm = objects.Object(1, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component)
 
-		#for n in range(200):
-		#	rand_x = random.randrange(constants.MAP_WIDTH)
-		#	rand_y = random.randrange(constants.MAP_HEIGHT)
+ 			abhorrent_creature_BRAIN = objects.FSM()
+			abhorrent_creature_AI = objects.NoiseAI(brain=abhorrent_creature_BRAIN)
+			abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
+			abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI)
+			abhorrent_creature.sounds['sound_walk'] = "deep low humming."
+			abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
+			abhorrent_creature.fighter.modificators.update(constants.mods)
 
-		#	if not self.map[rand_x][rand_y].block_sight:
-		#		hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, heal_value=5)
-		#		hp_potion = objects.Object(player.x + 1, player.y, self.images[constants.IMAGES_POTION_HP], 'healing potion', item=hp_potion_item_component)
-		#		self.objects.append(hp_potion)
+			gobleen_BRAIN = objects.FSM()
+			gobleen_ai = objects.NoiseAI(brain=gobleen_BRAIN)
+			gobleen_fighter_component = objects.Fighter(25, 10, 10)
+			gobleen = objects.Object(24, 11, self.images[25], 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component) # 2 7
+			gobleen.sounds['sound_walk'] = "mumbling and shuffling."
+			gobleen.fighter.modificators.update(constants.mods)
+			gobleen.fighter.modificators["mod_to_seeing"] += 70
 
-		#scroll_of_death_item_component = objects.Item(targetable=True, use_func=use_functions.instant_death)
-		#scroll_of_death = objects.Object(player.x + 2, player.y, self.images[constants.IMAGES_SCROLL_OF_DEATH], 'scroll of death', item=scroll_of_death_item_component)
+			for n in range(200):
+				rand_x = random.randrange(constants.MAP_WIDTH)
+				rand_y = random.randrange(constants.MAP_HEIGHT)
 
-		#ultimate_hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, heal_value=50)
-		#ultimate_hp_potion = objects.Object(player.x + 3, player.y, self.images[21], 'ultimate healing potion', item=ultimate_hp_potion_item_component)
+				if not self.map[rand_x][rand_y].block_sight:
+					hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, heal_value=5)
+					hp_potion = objects.Object(player.x + 1, player.y, self.images[constants.IMAGES_POTION_HP], 'healing potion', item=hp_potion_item_component)
+					self.objects.append(hp_potion)
 
-		#potion_of_death_item_component = objects.Item(use_func=use_functions.instant_death, can_break=True)
-		#potion_of_death = objects.Object(player.x + 4, player.y + 1, self.images[28], 'potion of death', item=potion_of_death_item_component)
-		#potion_of_confusion_item_component = objects.Item(use_func=use_functions.confuse, can_break=True)
-		#potion_of_confusion = objects.Object(player.x + 1, player.y + 3, self.images[30], 'potion of confusion', item=potion_of_confusion_item_component)
+			scroll_of_death_item_component = objects.Item(targetable=True, use_func=use_functions.instant_death)
+			scroll_of_death = objects.Object(player.x + 2, player.y, self.images[constants.IMAGES_SCROLL_OF_DEATH], 'scroll of death', item=scroll_of_death_item_component)
 
-		#oil_item_component = objects.Item(use_func=use_functions.refill_lantern, can_break=True, oil_value=500)
-		#oil = objects.Object(player.x + 3, player.y + 2, self.images[24], 'oil', item=oil_item_component)
+			ultimate_hp_potion_item_component = objects.Item(use_func=use_functions.heal, can_break=True, heal_value=50)
+			ultimate_hp_potion = objects.Object(player.x + 3, player.y, self.images[21], 'ultimate healing potion', item=ultimate_hp_potion_item_component)
+
+			potion_of_death_item_component = objects.Item(use_func=use_functions.instant_death, can_break=True)
+			potion_of_death = objects.Object(player.x + 4, player.y + 1, self.images[28], 'potion of death', item=potion_of_death_item_component)
+			potion_of_confusion_item_component = objects.Item(use_func=use_functions.confuse, can_break=True)
+			potion_of_confusion = objects.Object(player.x + 1, player.y + 3, self.images[30], 'potion of confusion', item=potion_of_confusion_item_component)
+
+			oil_item_component = objects.Item(use_func=use_functions.refill_lantern, can_break=True, oil_value=500)
+			oil = objects.Object(player.x + 3, player.y + 2, self.images[24], 'oil', item=oil_item_component)
 
 
-		#for n in range(5):
-		#	scroll_of_uncontrolled_teleportation_item_component = objects.Item(use_func=use_functions.uncontrolled_teleportation, map=self.map)
-		#	scroll_of_uncontrolled_teleportation = objects.Object(player.x + 2, player.y+1, self.images[17], 'scroll of uncontrolled teleportation', item=scroll_of_uncontrolled_teleportation_item_component)
-		#	self.objects.append(scroll_of_uncontrolled_teleportation)
+			for n in range(5):
+				scroll_of_uncontrolled_teleportation_item_component = objects.Item(use_func=use_functions.uncontrolled_teleportation, map=self.map)
+				scroll_of_uncontrolled_teleportation = objects.Object(player.x + 2, player.y+1, self.images[17], 'scroll of uncontrolled teleportation', item=scroll_of_uncontrolled_teleportation_item_component)
+				self.objects.append(scroll_of_uncontrolled_teleportation)
 
-		#bronze_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=4)
-		#bronze_armor_item_component = objects.Item(use_func=use_functions.equip, name='bronze breastplate', equipment=bronze_armor_equipment_component, UI=self.ui, weight=41)
-		#bronze_armor = objects.Object(player.x + 1, player.y + 1, self.images[16], 'bronze breastplate', item=bronze_armor_item_component)
+			bronze_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=4)
+			bronze_armor_item_component = objects.Item(use_func=use_functions.equip, name='bronze breastplate', equipment=bronze_armor_equipment_component, UI=self.ui, weight=41)
+			bronze_armor = objects.Object(player.x + 1, player.y + 1, self.images[16], 'bronze breastplate', item=bronze_armor_item_component)
 
-		#crystal_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=50)
-		#crystal_armor_item_component = objects.Item(use_func=use_functions.equip, name='crystal breastplate', equipment=crystal_armor_equipment_component, UI=self.ui, weight=51)
-		#crystal_armor = objects.Object(player.x, player.y + 1, self.images[18], 'crystal breastplate', item=crystal_armor_item_component)
+			crystal_armor_equipment_component = objects.Equipment(slot='breastplate', defence_bonus=50)
+			crystal_armor_item_component = objects.Item(use_func=use_functions.equip, name='crystal breastplate', equipment=crystal_armor_equipment_component, UI=self.ui, weight=51)
+			crystal_armor = objects.Object(player.x, player.y + 1, self.images[18], 'crystal breastplate', item=crystal_armor_item_component)
 
-		#crown_equipment_component = objects.Equipment(slot='helmet', defence_bonus=2, max_health_bonus=100)
-		#crown_item_component = objects.Item(use_func=use_functions.equip, name='golden crown of great health', equipment=crown_equipment_component, UI=self.ui)
-		#crown = objects.Object(player.x + 3, player.y + 1, self.images[20], 'golden crown of great health', item=crown_item_component)
+			crown_equipment_component = objects.Equipment(slot='helmet', defence_bonus=2, max_health_bonus=100)
+			crown_item_component = objects.Item(use_func=use_functions.equip, name='golden crown of great health', equipment=crown_equipment_component, UI=self.ui)
+			crown = objects.Object(player.x + 3, player.y + 1, self.images[20], 'golden crown of great health', item=crown_item_component)
 
-		#cloak_of_invisibility_equipment_component = objects.Equipment(slot='cloak', defence_bonus=3, chance_to_be_seen_modificator=-200)
-		#cloak_of_invisibility_item_component = objects.Item(use_func=use_functions.equip, name='cloak of invisibility', equipment=cloak_of_invisibility_equipment_component, UI=self.ui)
-		#cloak_of_invibility = objects.Object(player.x + 4, player.y + 2, self.images[29], 'cloak of invisibility', item=cloak_of_invisibility_item_component)
+			cloak_of_invisibility_equipment_component = objects.Equipment(slot='cloak', defence_bonus=3, chance_to_be_seen_modificator=-200)
+			cloak_of_invisibility_item_component = objects.Item(use_func=use_functions.equip, name='cloak of invisibility', equipment=cloak_of_invisibility_equipment_component, UI=self.ui)
+			cloak_of_invibility = objects.Object(player.x + 4, player.y + 2, self.images[29], 'cloak of invisibility', item=cloak_of_invisibility_item_component)
 
 
-		#iron_sword_equipment_component = objects.Equipment(slot='right_hand', power_bonus=10) # for now fixed hand
-		#iron_sword_item_component = objects.Item(use_func=use_functions.equip, name='iron sword', equipment=iron_sword_equipment_component, UI=self.ui)
-		#iron_sword = objects.Object(player.x + 1, player.y - 1, self.images[19], 'iron sword', item=iron_sword_item_component)
-		#great_steel_long_sword_equipment_component = objects.Equipment(slot='left_hand', power_bonus=30)
-		#great_steel_long_sword_item_component = objects.Item(use_func=use_functions.equip, name='great steel long sword', equipment=great_steel_long_sword_equipment_component, UI=self.ui)
-		#great_steel_long_sword = objects.Object(player.x + 1, player.y + 2, self.images[22], 'great steel long sword', item=great_steel_long_sword_item_component)
+			iron_sword_equipment_component = objects.Equipment(slot='right_hand', power_bonus=10) # for now fixed hand
+			iron_sword_item_component = objects.Item(use_func=use_functions.equip, name='iron sword', equipment=iron_sword_equipment_component, UI=self.ui)
+			iron_sword = objects.Object(player.x + 1, player.y - 1, self.images[19], 'iron sword', item=iron_sword_item_component)
+			great_steel_long_sword_equipment_component = objects.Equipment(slot='left_hand', power_bonus=30)
+			great_steel_long_sword_item_component = objects.Item(use_func=use_functions.equip, name='great steel long sword', equipment=great_steel_long_sword_equipment_component, UI=self.ui)
+			great_steel_long_sword = objects.Object(player.x + 1, player.y + 2, self.images[22], 'great steel long sword', item=great_steel_long_sword_item_component)
 
-		#lantern_equipment_component = objects.Equipment(slot='accessory', charges=700 ,light_radius_bonus=10, activation_func=use_functions.light_lantern, deactivation_string="turns off", wear_off_string="run out of oil")
-		#lantern_item_component = objects.Item(use_func=use_functions.equip, name='lantern', equipment=lantern_equipment_component, UI=self.ui)
-		#lantern = objects.Object(player.x + 2, player.y+2, self.images[23], 'lantern', item=lantern_item_component)
+			lantern_equipment_component = objects.Equipment(slot='accessory', charges=700 ,light_radius_bonus=10, activation_func=use_functions.light_lantern, deactivation_string="turns off", wear_off_string="run out of oil")
+			lantern_item_component = objects.Item(use_func=use_functions.equip, name='lantern', equipment=lantern_equipment_component, UI=self.ui)
+			lantern = objects.Object(player.x + 2, player.y+2, self.images[23], 'lantern', item=lantern_item_component)
 
-		#chest_loot = []
+			chest_loot = []
 
-		#for n in range(10):
-		#	potion_of_death_item_component = objects.Item(use_func=use_functions.instant_death, can_break=True)
-		#	potion_of_death = objects.Object(player.x + 4, player.y + 1, self.images[28], 'potion of death', item=potion_of_death_item_component)
-		#	chest_loot.append(potion_of_death)
+			for n in range(10):
+				potion_of_death_item_component = objects.Item(use_func=use_functions.instant_death, can_break=True)
+				potion_of_death = objects.Object(player.x + 4, player.y + 1, self.images[28], 'potion of death', item=potion_of_death_item_component)
+				chest_loot.append(potion_of_death)
 
-		#chest_container_component = objects.Container(loot=chest_loot)
-		#chest = objects.Object(player.x + 2, player.y + 4, self.images[31], 'chest', container=chest_container_component)
+			chest_container_component = objects.Container(loot=chest_loot)
+			chest = objects.Object(player.x + 2, player.y + 4, self.images[31], 'chest', container=chest_container_component)
 
-		#self.objects.append(player)
-		#self.objects.append(abhorrent_creature)
-		#self.objects.append(scroll_of_death)
-		#self.objects.append(bronze_armor)
-		#self.objects.append(crystal_armor)
-		#self.objects.append(iron_sword)
-		#self.objects.append(crown)
-		#self.objects.append(ultimate_hp_potion)
-		#self.objects.append(great_steel_long_sword)
-		#self.objects.append(lantern)
-		#self.objects.append(oil)
-		#self.objects.append(gobleen)
-		#self.objects.append(potion_of_death)
-		#self.objects.append(cloak_of_invibility)
-		#self.objects.append(potion_of_confusion)
-		#self.objects.append(chest)
+			self.objects.append(player)
+			self.objects.append(abhorrent_creature)
+			self.objects.append(scroll_of_death)
+			self.objects.append(bronze_armor)
+			self.objects.append(crystal_armor)
+			self.objects.append(iron_sword)
+			self.objects.append(crown)
+			self.objects.append(ultimate_hp_potion)
+			self.objects.append(great_steel_long_sword)
+			self.objects.append(lantern)
+			self.objects.append(oil)
+			self.objects.append(gobleen)
+			self.objects.append(potion_of_death)
+			self.objects.append(cloak_of_invibility)
+			self.objects.append(potion_of_confusion)
+			self.objects.append(chest)
+
+			self.fov_map = field_of_view.set_fov(self.fov_map)
+			self.ui = UI(player.fighter, self.images, 'game_screen')
+			field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map, radius=player.fighter.max_light_radius)
+		else:
+			self._exit()
 
 	def handle_keys(self):
 
@@ -345,13 +344,16 @@ class Game(object): # move this to objects
 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
-				pygame.quit()
-				exit(0)
+				if not self.debug:
+					self._exit(save=True)
+				else:
+					self._exit()
 			if event.type == pygame.KEYDOWN:
-
 				if event.key == pygame.K_ESCAPE:
-					pygame.quit()
-					exit(0)
+					if not self.debug:
+						self._exit(save=True)
+					else:
+						self._exit()
 				if event.key == pygame.K_l:
 					player.move(1, 0, self.map, self.fov_map, self.objects)
 					return 'took_turn'
@@ -1076,9 +1078,20 @@ class Game(object): # move this to objects
 			self.ui.add_item_to_UI(item)
 			return 'didnt throw'
 
+	def _exit(self, save=False):
+		if not save:
+			pygame.quit()
+			exit(0)
+		else:
+			with open('data/saves/save', 'wb') as file: # name of player here
+				pickle.dump(self, file)
+
+
 
 class UI(object): # move this to objects
-	# this class is responsible for drawing the inventory, noise indicators and various windows
+	"""
+	this class is responsible for drawing the inventory, equipment, noise indicators and various windows and menus.
+	""" 
 	def __init__(self, player, images, current_view):
 		self.images = images
 		self.current_view = current_view
@@ -1213,7 +1226,6 @@ class UI(object): # move this to objects
 	def draw_info_window(self, obj, scr, decide_to_drop=False):
 		messages_IMAGES = [self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
 
-
 		# General description about any object
 		# If object.fighter - draw additional info
 		# If object.item - draw additional info
@@ -1229,7 +1241,6 @@ class UI(object): # move this to objects
 
 			attack_to_blit = font.render("Attack: " + str(obj.fighter.attack_stat + obj.fighter.initial_attack_stat), False, WHITE)
 			hp_to_blit = font.render("HP: " + str(obj.fighter.hp ), False, RED)
-
 
 		escaped = False
 
@@ -1252,9 +1263,7 @@ class UI(object): # move this to objects
 						escaped = True
 					break
 
-
 			scr.fill(BLACK)
-
 
 			self.draw_rect(0, 0, 42, 37, messages_IMAGES ,scr, title=obj.name.title())
 			y = 1
@@ -1283,7 +1292,7 @@ class UI(object): # move this to objects
 		if self.equipment_places[slot][1] is None:
 			print 'd'
 			self.equipment_places[slot][1] = piece_of_equipment
-			self.remove_item_from_UI(piece_of_equipment.x, piece_of_equipment.y) # remove before moving (changing the coordinates) the item.
+			self.remove_item_from_UI(piece_of_equipment.x, piece_of_equipment.y) # remove before moving (changing the coordinates of) the item.
 			x = self.equipment_places[slot][0][0]
 			y = self.equipment_places[slot][0][1]
 			piece_of_equipment.x = x
@@ -1458,8 +1467,54 @@ class UI(object): # move this to objects
 		return None
 		# return item chosen
 
-class Level(object): # move this to objects
-	pass
+	def choosable_menu(self, options, title=''):
+		messages_IMAGES = [self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
+
+		chosen = False
+
+		index = 0
+
+		to_highlight = options[index]
+
+		while not chosen:
+
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+						pygame.quit()
+						exit(0)
+				if event.type == pygame.KEYDOWN:
+					if event.key == pygame.K_UP:
+						index -= 1
+						if index <= -1:
+							index = 0
+
+					if event.key == pygame.K_DOWN:
+						index += 1
+						if index >= len(options):
+							index = len(options)-1
+
+					if event.key == pygame.K_RETURN:
+						return options[index]
+
+			scr.fill(BLACK)
+			self.draw_rect(0, 0, 42, 37, messages_IMAGES ,scr, title.title())
+
+			y = constants.SCREEN_HEIGHT / 2
+			x = constants.SCREEN_WIDTH / 2 - constants.FONT_SIZE * 2
+
+			for option in reversed(options):
+
+				if options[index] == option:
+					option_to_blit = font.render(option, False, WHITE) # White
+				else:
+					option_to_blit = font.render(option, False, FADED_WHITE) # Grey
+
+				scr.blit(option_to_blit, (x, y))
+
+				y -= constants.FONT_SIZE
+
+
+			pygame.display.flip()
 
 
 def main():
@@ -1603,11 +1658,12 @@ if __name__ == '__main__':
 # Looks like we have to store the previous value of noise (previous place) when player waits, because monsters seems to stop chasing the player when he waits.
 # Make so, that knees regenerate faster each turn (and then reset that).
 # Add damage to thrown items.
+# Rename This File Game and add new file - main, and launch game from there
 
 # v 0.29 - Demo version
 #		In-game help.
 #		Informations properly displayed in windows.
-#		AOE! Wand of fire
+#		AOE! Wand of fire.
 #		Access message history
 #		Saving, loading, deleting saves. <- one save state
 #		Demo version - simple procedural progression of items and monsters, 7 levels <- this first, next menu - very important, we have to know if it is at all playable
@@ -1615,5 +1671,5 @@ if __name__ == '__main__':
 #		Debug mode - this map that I'm testing things on.
 #		Monster dropping items
 #		
-#		1) Generating random map, but save that debug map
-#		2) Saving.
+#		1) Generating random map v, but save that debug map v <- make easily accessible V
+#		2) Saving. -> little menu V (Start New Game, Load Game, Debug Map, Quit Game) 

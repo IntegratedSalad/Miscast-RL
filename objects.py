@@ -741,7 +741,6 @@ weapons = {'type': {
 		  }
 
 
-
 # PRIORITY IMG, (CHANCE, SPAWN RANGE), DEF, TO_BE_SEEN, TO_BE_HEARD, TO_SEE, TO_HEAR, WEIGHT, MAX_HEALTH_BONUS
 
 chest_armor = {'material': {'bronze': [1, 16, (99, (1, 4)), 7, 0, 10, 0, 0, 10, 0],
@@ -765,7 +764,6 @@ scrolls = {}
 items = []
 
 artifacts = {} # like crown of health, boots of silence, cloak of invisibility
-
 
 # all generators have to return 'name': '' and 'data': IMG!!!
 
@@ -794,10 +792,6 @@ def gen_armor(level, _type, slot, equip_use_func, key):
 					armors_generated.append({"{0} {1}".format(str(x), slot) : item_component, 'data': IMG})
 
 	return armors_generated
-
-
-	#return Equipment()
-
 
 def gen_monsters(level, monsters, limit):
 

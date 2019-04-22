@@ -37,13 +37,13 @@ def can_hear(obj_hearing, obj_heard, noise_range, noise_chance): # obj_heard = n
 
             throw = noise_chance + obj_heard_mod_to_be_heard + obj_hearing_mod_to_hearing + obj_hearing.fighter.armor_to_hear_modificator + OBJ_HEARD_ARMOR_MOD
 
-            print noise_chance, obj_heard_mod_to_be_heard, obj_hearing_mod_to_hearing, obj_hearing.fighter.armor_to_hear_modificator, OBJ_HEARD_ARMOR_MOD
+            #print noise_chance, obj_heard_mod_to_be_heard, obj_hearing_mod_to_hearing, obj_hearing.fighter.armor_to_hear_modificator, OBJ_HEARD_ARMOR_MOD
 
             #print  "{0}: Throws: {1}, Treshold: {2} | is {3} < {4}? : {5}".format(obj_hearing.name, str(chance), str(throw), str(chance), str(throw), str(chance < throw))
 
             if chance < throw:
 
-                print obj_heard.name + " was heard."
+                #print obj_heard.name + " was heard."
 
                 return True
 
