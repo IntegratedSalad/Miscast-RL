@@ -27,7 +27,6 @@ class Game(object): # move this to objects
 	def __init__(self, state=None):
 		self.state = state
 		self.map = None 
-		self.images = []
 		self.objects = []
 		self.fov_map = []
 		self.messages_history = []
@@ -130,12 +129,53 @@ class Game(object): # move this to objects
 
 		magic_bell_IMG = None
 
+		objects_dict = \
+		{
+			'player_IMG' : player_IMG,
+			'wall_IMG' : wall_IMG,
+			'floor_IMG' : floor_IMG,
+			'corpse_IMG' : corpse_IMG,
+			'empty_spaceIMG' : empty_spaceIMG,
+			'worm_IMG' : worm_IMG,
+			'abhorrent_creature_IMG' : abhorrent_creature_IMG,
+			'goblin_IMG' : goblin_IMG,
+			'hp_potion_IMG' : hp_potion_IMG,
+			'ultimate_hp_potion_IMG' : ultimate_hp_potion_IMG,
+			'scroll_of_death_IMG' : scroll_of_death_IMG,
+			'scroll_of_uncontrolled_teleportation_IMG' : scroll_of_uncontrolled_teleportation_IMG,
+			'potion_of_death_IMG' : potion_of_death_IMG,
+			'potion_of_confusion_IMG' : potion_of_confusion_IMG,
+			'great_steel_long_sword_IMG' : great_steel_long_sword_IMG,
+			'iron_sword_IMG' : iron_sword_IMG,
+			'bronze_armor_IMG' : bronze_armor_IMG,
+			'copper_armor_IMG' : copper_armor_IMG,
+			'steel_armor_IMG' : steel_armor_IMG,
+			'hardened_steel_armor_IMG' : hardened_steel_armor_IMG,
+			'crystal_armor_IMG' : crystal_armor_IMG,
+			'crown_IMG' : crown_IMG,
+			'cloak_of_invisibility_IMG' : cloak_of_invisibility_IMG,
+			'lantern_IMG' : lantern_IMG,
+			'oil_IMG' : oil_IMG,
+			'chest_IMG' : chest_IMG,
+			'ui_MESSAGE_HORIZONTAL' : ui_MESSAGE_HORIZONTAL,
+			'ui_MESSAGE_TOP_LEFT' : ui_MESSAGE_TOP_LEFT,
+			'ui_MESSAGE_BOTTOM_LEFT' : ui_MESSAGE_BOTTOM_LEFT,
+			'ui_MESSAGE_TOP_RIGHT' : ui_MESSAGE_BOTTOM_RIGHT,
+			'ui_MESSAGE_BOTTOM_RIGHT' : ui_MESSAGE_BOTTOM_RIGHT,
+			'ui_MESSAGE_VERTICAL' : ui_MESSAGE_VERTICAL,
+			'inventory_slot_IMG' : inventory_slot_IMG,
+			'noise_indicator_IMG' : noise_indicator_IMG
+		}
 
-		return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
-				ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG,
-				scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG,
-				ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG, goblin_IMG, magic_bell_IMG, noise_indicator_IMG, potion_of_death_IMG, cloak_of_invisibility_IMG, potion_of_confusion_IMG, chest_IMG,
-				copper_armor_IMG, steel_armor_IMG, hardened_steel_armor_IMG]
+		constants.tiles = objects_dict
+		objects_dict = None
+
+
+		#return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
+		#		ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG,
+		#		scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG,
+		#		ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG, goblin_IMG, magic_bell_IMG, noise_indicator_IMG, potion_of_death_IMG, cloak_of_invisibility_IMG, potion_of_confusion_IMG, chest_IMG,
+		#		copper_armor_IMG, steel_armor_IMG, hardened_steel_armor_IMG]
 
 				# Last: 34
 																														
@@ -521,7 +561,7 @@ class Game(object): # move this to objects
 	def run(self):
 		self.state = 'playing'
 		clock = pygame.time.Clock()
-		player.send_message("To exit, press ESC.")
+		player.send_message("To exit, press ESC.") # only if new game
 		player.send_message("For more help press '?'.")
 		player.send_message("You descend into your own basement.")
 		self.listen_for_messagess(player)
@@ -584,7 +624,6 @@ class Game(object): # move this to objects
 
 					for obj in self.objects: # to not iterate over whole list - add monsters to a dedicated one
 
-
 						self.check_for_death(obj)
 
 						if obj.ai and obj.name != constants.PLAYER_NAME:
@@ -604,17 +643,6 @@ class Game(object): # move this to objects
 							monster_noise_source = obj.noise_made['source']
 							monster_noise_sound = obj.noise_made['sound_name']
 							monster_noise_chance = obj.noise_made['chance_to_be_heard']
-
-							#print player.noise_made
-
-
-							# I'M PASSING WRONG VALUES AND IT DOESN'T SHOW UP
-
-							#try:
-							#	print player.x, player.y
-							#	print player_noise_source.x, player_noise_source.y
-							#except:
-							#	pass
 
 							# monster hearing player
 							if utils.can_hear(obj, player_noise_source, player_noise_range, player_noise_chance):
@@ -703,7 +731,7 @@ class Game(object): # move this to objects
 					else:
 						item_component = item_dict[name]
 
-						item = objects.Object(random_x, random_y, self.images[img], name, item=item_component)
+						item = objects.Object(random_x, random_y, img, name, item=item_component)
 						self.objects.append(item)
 						placed = True
 
@@ -770,7 +798,7 @@ class Game(object): # move this to objects
 
 	def check_for_player_death(self):
 		if player.fighter.hp <= 0:
-			player.img = self.images[6]
+			player.img_key = self.images[6]
 			return 'game_over'
 		else:
 			return 'playing'
@@ -1083,17 +1111,23 @@ class Game(object): # move this to objects
 			pygame.quit()
 			exit(0)
 		else:
+			# or instead of changing the place of list of images, destroy them here - self.images = None 
+			self.images = None
+			self.ui.images = None
+
 			with open('data/saves/save', 'wb') as file: # name of player here
 				pickle.dump(self, file)
 
+		pygame.quit()
+		exit(0)
 
 
 class UI(object): # move this to objects
 	"""
 	this class is responsible for drawing the inventory, equipment, noise indicators and various windows and menus.
 	""" 
-	def __init__(self, player, images, current_view):
-		self.images = images
+	def __init__(self, player, current_view):
+		self.images = constants.tiles
 		self.current_view = current_view
 		self.inv_start_pos_x = constants.INVENTORY_ITEMS_START_X * constants.FONT_SIZE
 		self.inv_start_pos_y = constants.INVENTORY_ITEMS_START_Y * constants.FONT_SIZE
@@ -1145,7 +1179,6 @@ class UI(object): # move this to objects
 				elif y == start_y and x != start_x and x != start_x + width-1 or y == start_y + height-1 and x != start_x and x != start_x + width-1:
 					scr.blit(HORIZONTAL, (_x, _y))
 
-
 		if title is not None:
 
 			title_len = len(title)
@@ -1175,7 +1208,7 @@ class UI(object): # move this to objects
 		# draw name of the rect in the middle of upper part of the rect
 
 	def draw(self, scr, knee_health): #draw_main_screen
-		messages_IMAGES = [self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
+		messages_IMAGES = [''] #[self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
 		information_IMAGES  = messages_IMAGES
 
 		self.draw_rect(constants.START_MESSAGE_BOX_X, constants.START_MESSAGE_BOX_Y, 30, 7, messages_IMAGES, scr, 'MESSAGES')
@@ -1188,7 +1221,7 @@ class UI(object): # move this to objects
 
 		scr.blit(hp_to_blit, (constants.HP_START_X * constants.TILE_SIZE, constants.HP_START_Y))
 
-	def draw_inventory(self, scr): # change that
+	def draw_inventory(self, scr):
 		for item in player.fighter.inventory:
 
 			_x = item.x * constants.FONT_SIZE
@@ -1224,7 +1257,7 @@ class UI(object): # move this to objects
 				break
 
 	def draw_info_window(self, obj, scr, decide_to_drop=False):
-		messages_IMAGES = [self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
+		messages_IMAGES = [''] # [self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
 
 		# General description about any object
 		# If object.fighter - draw additional info

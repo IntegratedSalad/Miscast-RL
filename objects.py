@@ -13,7 +13,7 @@ class Object(object):
 	def __init__(self, x, y, img, name, blocks=False, block_sight=None, fighter=None, ai=None, item=None, container=None, initial_light_radius=0, damage_at_impact=0):
 		self.x = x
 		self.y = y
-		self.img = img
+		self.img = constants.tiles[img]
 		self.name = name
 		self.blocks = blocks
 		self.fighter = fighter
