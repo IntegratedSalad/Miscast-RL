@@ -56,7 +56,6 @@ def can_see(player_visibleness, monster_seeing): # in NoiseAI
     throw = monster_seeing + player_visibleness 
 
     if chance < throw:
-        print "Monster saw the player."
         return True
 
     return False

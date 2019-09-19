@@ -1,6 +1,6 @@
 from math import sqrt
-from map_utils import is_blocked
-import libtcodpy as libtcod
+from Tile import is_blocked
+import tcod as libtcod
 import field_of_view
 import constants
 import random
@@ -301,7 +301,6 @@ class Fighter(object):
 			self.owner.send_message("You stand up.")
 
 	def is_overburdened(self):
-		#print self.burden
 		return self.burden > 50 # some number
 
 	def is_burdened(self):
@@ -341,7 +340,7 @@ class SimpleAI(object):
 
 		else:
 			# get to the player
-			print self.owner.name
+			self.owner.name
 
 			distance = self.owner.distance_to(player)
 
@@ -366,8 +365,8 @@ class NoiseAI(object): # Maybe do something like this is base ai? and make compo
 		self.player_out_of_sight = 0
 
 	def take_turn(self, _map, objects, player, fov_map):
-		#print self.brain.active_state.__name__, self.owner.name
-		#print self.destination, self.owner.name
+		# self.brain.active_state.__name__, self.owner.name
+		# self.destination, self.owner.name
 		self.brain.update(map=_map, objects=objects, player=player, fov_map=fov_map)
 
 	def wander(self, **kwargs):
@@ -382,7 +381,7 @@ class NoiseAI(object): # Maybe do something like this is base ai? and make compo
 			if self.destination is not None:
 				path = self.set_path(_map, objects, self.destination, player)
 				if not libtcod.path_is_empty(path[0]) and libtcod.path_size(path[0]) < 25:
-					#print self.destination
+					# self.destination
 					self.brain.active_state = self.investigate
 					self.path = path
 
@@ -406,7 +405,7 @@ class NoiseAI(object): # Maybe do something like this is base ai? and make compo
 
 		if not self.saw_player(fov_map, player):
 
-			#print self.owner.x, self.owner.y, self.path[2]
+			# self.owner.x, self.owner.y, self.path[2]
 
 			if process == 'reached':
 				self.brain.active_state = self.wander
@@ -458,7 +457,7 @@ class NoiseAI(object): # Maybe do something like this is base ai? and make compo
 		distance = utils.non_obj_distance_to((target_x, target_y), self.owner.x, self.owner.y)
 
 		if distance != 0:
-			#print 'moving'
+			# 'moving'
 			
 			dx = target_x - self.owner.x
 			dy = target_y - self.owner.y
@@ -496,7 +495,6 @@ class ConfusedAI(object):
 		rand_dir_y = random.randint(-1, 1)
 		self.owner.move(rand_dir_x, rand_dir_y, _map, fov_map, objects)
 		self.owner.fighter.hp -= random.randint(1, 6)
-		print 'd'
 
 		self.duration -= 1
 
@@ -526,7 +524,7 @@ class Item(object):
 		user = kwargs.get('user')
 		ui = kwargs.get('UI')
 
-		#print str(user.name) + ": USER"
+		# str(user.name) + ": USER"
 
 		kwargs.update(self.kwargs)
 
@@ -641,7 +639,7 @@ class Container(object): # to have more loot in one place
 					user.inventory.append(item)
 					ui.add_item_to_UI(item)
 					self.loot.remove(item)
-				#print len(user.inventory)
+				# len(user.inventory)
 
 	def put_inside(self, item):
 		self.loot.append(item)
@@ -660,18 +658,18 @@ def player_hurt_or_heal_knees(player, _map):
 
 	max_knees = 10
 
-	#print player.fighter.is_overburdened()
-	#print player.fighter.knees
+	# player.fighter.is_overburdened()
+	# player.fighter.knees
 
 	if player.fighter.sneaking:
 		player.fighter.knees -= 0.5 # add calculated value based on dexterity
 
 	if not player.fighter.sneaking and player.fighter.knees < max_knees:
-		#print 'dd'
+		# 'dd'
 		player.fighter.knees += 0.1
 
 	if (player.fighter.knees <= 0 and player.fighter.sneaking) or (player.fighter.knees <= 0 and player.fighter.is_overburdened):
-		#print 'dupsko'
+		# 'dupsko'
 		player_scream(player, _map)
 
 def player_scream(player, _map):
@@ -695,7 +693,7 @@ monsters = {'goblin': [constants.GOBLIN_MAX_HP,
 					   constants.GOBLIN_AI,
 				       constants.GOBLIN_SPAWN_RANGE,
 				       constants.GOBLIN_SPAWN_CHANCE,
-				       constants.GOBLIN_IMAGE_INDEX,
+				       constants.GOBLIN_IMAGE_NAME,
 				       constants.GOBLIN_MOD_TO_BE_SEEN,
 				       constants.GOBLIN_MOD_TO_BE_HEARD
 				       ],
@@ -709,7 +707,7 @@ monsters = {'goblin': [constants.GOBLIN_MAX_HP,
 					   constants.WORM_AI,
 				       constants.WORM_SPAWN_RANGE,
 				       constants.WORM_SPAWN_CHANCE,
-				       constants.WORM_IMAGE_INDEX,
+				       constants.WORM_IMAGE_NAME,
 				       constants.WORM_MOD_TO_BE_SEEN,
 				       constants.WORM_MOD_TO_BE_HEARD
 					   ],
@@ -723,7 +721,7 @@ monsters = {'goblin': [constants.GOBLIN_MAX_HP,
 					   				 constants.ABHORRENT_CREATURE_AI,
 				       				 constants.ABHORRENT_CREATURE_SPAWN_RANGE,
 				       				 constants.ABHORRENT_CREATURE_SPAWN_CHANCE,
-				       				 constants.ABHORRENT_CREATURE_IMAGE_INDEX,
+				       				 constants.ABHORRENT_CREATURE_IMAGE_NAME,
 				       				 constants.ABHORRENT_CREATURE_MOD_TO_BE_SEEN,
 				       				 constants.ABHORRENT_CREATURE_MOD_TO_BE_HEARD
 					   ],
@@ -743,11 +741,11 @@ weapons = {'type': {
 
 # PRIORITY IMG, (CHANCE, SPAWN RANGE), DEF, TO_BE_SEEN, TO_BE_HEARD, TO_SEE, TO_HEAR, WEIGHT, MAX_HEALTH_BONUS
 
-chest_armor = {'material': {'bronze': [1, 16, (99, (1, 4)), 7, 0, 10, 0, 0, 10, 0],
-							'copper': [2, 32, (15, (1, 4)), 8, 0, 6, 0, 0, 6, 0],
-							'steel':  [3, 33, (10, (3, 5)), 12, 0, 12, 0, 0, 14, 0],
-							'hardened steel': [4, 34, (8, (3, 6)), 16, 0, 20, 0, 0, 20, 0],
-							'crystal': [5, 18, (3, (5, 7)), 32, 20, 28, 0, 0, 30, 0]
+chest_armor = {'material': {'bronze': [1, 'bronze_armor_IMG', (99, (1, 4)), 7, 0, 10, 0, 0, 10, 0],
+							'copper': [2, 'copper_armor_IMG', (15, (1, 4)), 8, 0, 6, 0, 0, 6, 0],
+							'steel':  [3, 'steel_armor_IMG', (10, (3, 5)), 12, 0, 12, 0, 0, 14, 0],
+							'hardened steel': [4, 'hardened_steel_armor_IMG', (8, (3, 6)), 16, 0, 20, 0, 0, 20, 0],
+							'crystal': [5, 'crystal_armor_IMG', (3, (5, 7)), 32, 20, 28, 0, 0, 30, 0]
 						   }
 						   
 			  }
@@ -823,8 +821,8 @@ if __name__ == '__main__':
 	#counter = 0
 	#for n in armors:
 
-	#	print n.keys()
+	#	 n.keys()
 		#if n.has_key('crystal breastplate'):
 		#	counter += 1
 
-	#print counter
+	# counter

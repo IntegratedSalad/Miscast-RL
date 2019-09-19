@@ -100,7 +100,7 @@ WORM_MOD_TO_SEEING = -100
 WORM_AI = 'simple_AI'
 WORM_SPAWN_RANGE = (2, 2)
 WORM_SPAWN_CHANCE = 60
-WORM_IMAGE_INDEX = 4
+WORM_IMAGE_NAME = 'worm_IMG'
 WORM_MOD_TO_BE_SEEN = 0
 WORM_MOD_TO_BE_HEARD = 0
 #------------------------------------------
@@ -114,7 +114,7 @@ ABHORRENT_CREATURE_MOD_TO_SEEING = -100
 ABHORRENT_CREATURE_AI = 'noise_AI'
 ABHORRENT_CREATURE_SPAWN_RANGE = (2, 7)
 ABHORRENT_CREATURE_SPAWN_CHANCE = 100
-ABHORRENT_CREATURE_IMAGE_INDEX = 5
+ABHORRENT_CREATURE_IMAGE_NAME = 'abhorrent_creature_IMG'
 ABHORRENT_CREATURE_MOD_TO_BE_SEEN = 100
 ABHORRENT_CREATURE_MOD_TO_BE_HEARD = 0
 #------------------------------------------
@@ -128,7 +128,7 @@ GOBLIN_MOD_TO_SEEING = 0
 GOBLIN_AI = 'noise_AI'
 GOBLIN_SPAWN_RANGE = (1, 5)
 GOBLIN_SPAWN_CHANCE = 40
-GOBLIN_IMAGE_INDEX = 25
+GOBLIN_IMAGE_NAME = 'goblin_IMG'
 GOBLIN_MOD_TO_BE_SEEN = 100
 GOBLIN_MOD_TO_BE_HEARD = 0
 #------------------------------------------
@@ -141,7 +141,6 @@ player_DESCRIPTION = "What did I do to deserve this?" # Make it vary with mood a
 abhorrent_creature_DESCRIPTION = "What is this?! Hope it doesn't hear me..."
 
 # modificators:
-
 
 mods = {
 		

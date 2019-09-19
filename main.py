@@ -8,10 +8,14 @@ import objects
 import utils
 import use_functions
 import textwrap
-import cPickle as pickle
 from spritesheet import Spritesheet
-from map_utils import Tile
-from gen_map import generate_map_list
+from Tile import Tile
+
+try:
+	import cPickle as pickle
+except ImportError:
+	import pickle
+
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -46,7 +50,7 @@ class Game(object): # move this to objects
 				map_list.append(line)
 		return map_list		
 
-	def gen_new_map(self, debug=False):
+	def gen_new_map(self, debug=True):
 
 		if not debug:
 			raw_map_fom_list = generate_map_list() # self.debug_map FOR DEBUG MAP
@@ -167,18 +171,9 @@ class Game(object): # move this to objects
 			'noise_indicator_IMG' : noise_indicator_IMG
 		}
 
-		constants.tiles = objects_dict
-		objects_dict = None
+		constants.tiles = objects_dict	
 
-
-		#return [player_IMG, wall_IMG, floor_IMG, empty_spaceIMG, worm_IMG, abhorrent_creature_IMG, corpse_IMG,
-		#		ui_MESSAGE_HORIZONTAL, ui_MESSAGE_TOP_LEFT, ui_MESSAGE_BOTTOM_LEFT, ui_MESSAGE_TOP_RIGHT, ui_MESSAGE_BOTTOM_RIGHT, ui_MESSAGE_VERTICAL, hp_potion_IMG, scroll_of_death_IMG, inventory_slot_IMG, bronze_armor_IMG,
-		#		scroll_of_uncontrolled_teleportation_IMG, crystal_armor_IMG, iron_sword_IMG, crown_IMG,
-		#		ultimate_hp_potion_IMG, great_steel_long_sword_IMG, lantern_IMG, oil_IMG, goblin_IMG, magic_bell_IMG, noise_indicator_IMG, potion_of_death_IMG, cloak_of_invisibility_IMG, potion_of_confusion_IMG, chest_IMG,
-		#		copper_armor_IMG, steel_armor_IMG, hardened_steel_armor_IMG]
-
-				# Last: 34
-																														
+		return objects_dict																						
 
 	def set_map(self, _map):
 
@@ -206,7 +201,7 @@ class Game(object): # move this to objects
 				continue
 			else:
 				player_fighter_component = objects.Fighter(500, 3, 5)
-				player = objects.Object(x, y, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=3)
+				player = objects.Object(x, y, 'player_IMG', constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=3)
 				player.description = constants.player_DESCRIPTION
 				player.fighter.modificators.update(constants.mods)
 				player.fighter.modificators['mod_to_be_heard'] = 0
@@ -233,7 +228,7 @@ class Game(object): # move this to objects
 
 		self.images = self.get_images()
 
-		self.ui = UI(None, self.images, 'game_screen')
+		self.ui = UI(None, 'game_screen')
 
 		option = self.ui.choosable_menu(('New Game', 'Load Game', 'Debug Map', 'Quit'), title='Main Menu')
 
@@ -243,14 +238,14 @@ class Game(object): # move this to objects
 			self.ui = None
 
 			self.fov_map = field_of_view.set_fov(self.fov_map)
-			self.ui = UI(player.fighter, self.images, 'game_screen')
+			self.ui = UI(player.fighter, 'game_screen')
 			field_of_view.cast_rays(player.x, player.y, self.fov_map, self.map, radius=player.fighter.max_light_radius)
 
 			lantern_equipment_component = objects.Equipment(slot='accessory', charges=200 ,light_radius_bonus=6, activation_func=use_functions.light_lantern, deactivation_string="turns off", wear_off_string="run out of oil")
 			lantern_item_component = objects.Item(use_func=use_functions.equip, name='lantern', equipment=lantern_equipment_component, UI=self.ui)
 			oil_item_component = objects.Item(use_func=use_functions.refill_lantern, can_break=True, oil_value=200)
-			lantern = objects.Object(player.x+1, player.y, self.images[23], 'lantern', item=lantern_item_component)
-			oil = objects.Object(player.x+2, player.y, self.images[24], 'oil', item=oil_item_component)
+			lantern = objects.Object(player.x+1, player.y, 'lantern_IMG', 'lantern', item=lantern_item_component)
+			oil = objects.Object(player.x+2, player.y, 'oil_IMG', 'oil', item=oil_item_component)
 
 			player.fighter.inventory.append(lantern)
 			player.fighter.inventory.append(oil)
@@ -261,7 +256,7 @@ class Game(object): # move this to objects
 			self.gen_new_map(debug=True)
 
 			player_fighter_component = objects.Fighter(500, 3, 5)
-			player = objects.Object(1, 6, self.images[0], constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=3)
+			player = objects.Object(1, 6, 'player_IMG', constants.PLAYER_NAME, blocks=True, fighter=player_fighter_component, initial_light_radius=3)
 			player.description = constants.player_DESCRIPTION
 			player.fighter.modificators.update(constants.mods)
 			player.fighter.modificators['mod_to_be_heard'] = 0
@@ -270,12 +265,12 @@ class Game(object): # move this to objects
 
 			worm_AI = objects.SimpleAI()
 			worm_fighter_component = objects.Fighter(2, 2, 1)
-			worm = objects.Object(1, 7, self.images[4], 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component)
+			worm = objects.Object(1, 7, 'worm_IMG', 'worm', blocks=True, block_sight=True, ai=worm_AI, fighter=worm_fighter_component)
 
- 			abhorrent_creature_BRAIN = objects.FSM()
+			abhorrent_creature_BRAIN = objects.FSM()
 			abhorrent_creature_AI = objects.NoiseAI(brain=abhorrent_creature_BRAIN)
 			abhorrent_creature_fighter_component = objects.Fighter(constants.ABHORRENT_CREATURE_MAX_HP, 40, 50)
-			abhorrent_creature = objects.Object(27, 28, self.images[5], 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI)
+			abhorrent_creature = objects.Object(27, 28, 'abhorrent_creature_IMG', 'Abhorrent Creature', blocks=True, block_sight=True, fighter=abhorrent_creature_fighter_component, ai=abhorrent_creature_AI)
 			abhorrent_creature.sounds['sound_walk'] = "deep low humming."
 			abhorrent_creature.description = constants.abhorrent_creature_DESCRIPTION
 			abhorrent_creature.fighter.modificators.update(constants.mods)
@@ -283,7 +278,7 @@ class Game(object): # move this to objects
 			gobleen_BRAIN = objects.FSM()
 			gobleen_ai = objects.NoiseAI(brain=gobleen_BRAIN)
 			gobleen_fighter_component = objects.Fighter(25, 10, 10)
-			gobleen = objects.Object(24, 11, self.images[25], 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component) # 2 7
+			gobleen = objects.Object(24, 11, 'goblin_IMG', 'goblin', blocks=True, block_sight=True, ai=gobleen_ai, fighter=gobleen_fighter_component) # 2 7
 			gobleen.sounds['sound_walk'] = "mumbling and shuffling."
 			gobleen.fighter.modificators.update(constants.mods)
 			gobleen.fighter.modificators["mod_to_seeing"] += 70
@@ -599,7 +594,7 @@ class Game(object): # move this to objects
 
 					if player_action == 'took_turn' or mouse_action == 'took_turn':
 
-						#print player.fighter.modificators['mod_to_be_heard']
+						# player.fighter.modificators['mod_to_be_heard']
 
 
 						player.fighter.manage_fighter()
@@ -674,7 +669,7 @@ class Game(object): # move this to objects
 
 	def draw_all(self):
 
-		self.print_messages()
+		self._messages()
 		# self.ui.draw_current_view
 
 		if self.ui.current_view == 'game_screen' or 'inventory_screen':
@@ -688,11 +683,11 @@ class Game(object): # move this to objects
 
 					if self.fov_map[x][y] == 1:
 						if self.map[x][y].block_sight and self.map[x][y].is_map_structure:
-							scr.blit(self.images[1], (_x, _y))
+							scr.blit(self.images['wall_IMG'], (_x, _y))
 						else:
-							scr.blit(self.images[2], (_x, _y))
+							scr.blit(self.images['floor_IMG'], (_x, _y))
 					else:
-						scr.blit(self.images[3], (_x, _y))
+						scr.blit(self.images['empty_spaceIMG'], (_x, _y))
 
 		self.ui.draw(scr, player.fighter.knees)
 		self.draw_objects()
@@ -717,6 +712,7 @@ class Game(object): # move this to objects
 		if len(items_list) > 0:
 
 			for item_dict in items_list:
+				print(item_dict)
 				name = [x for x in item_dict.keys() if x != 'data'][0]
 				img = item_dict['data']
 
@@ -740,7 +736,7 @@ class Game(object): # move this to objects
 
 		for mon in monsters:
 
-			HP, ATTACK, DEFENCE, NAME, SOUND_WALK, MOD_TO_HEARING, MOD_TO_SEEING, AI, SPAWN_RANGE, SPAWN_CHANCE, IMAGE_INDEX, MOD_TO_BE_SEEN, MOD_TO_BE_HEARD = mon
+			HP, ATTACK, DEFENCE, NAME, SOUND_WALK, MOD_TO_HEARING, MOD_TO_SEEING, AI, SPAWN_RANGE, SPAWN_CHANCE, IMAGE_NAME, MOD_TO_BE_SEEN, MOD_TO_BE_HEARD = mon
 
 			if AI == 'noise_AI':	
 				brain = objects.FSM()
@@ -760,7 +756,7 @@ class Game(object): # move this to objects
 					continue
 				else:
 					fighter_component = objects.Fighter(HP, ATTACK, DEFENCE)
-					monster = objects.Object(random_x, random_y, self.images[IMAGE_INDEX], NAME, blocks=True, block_sight=True, fighter=fighter_component, ai=ai_component)
+					monster = objects.Object(random_x, random_y, IMAGE_NAME, NAME, blocks=True, block_sight=True, fighter=fighter_component, ai=ai_component)
 					monster.fighter.modificators.update(constants.mods)
 					monster.fighter.modificators['mod_to_seeing'] = MOD_TO_SEEING
 					monster.fighter.modificators['mod_to_be_seen'] = MOD_TO_BE_SEEN
@@ -781,12 +777,12 @@ class Game(object): # move this to objects
 		number_of_enemies = constants.MAX_ENEMIES
 
 		breastplates = objects.gen_armor(self.level, objects.chest_armor, 'breastplate', use_functions.equip, 'material')
-		#print breastplates
+		# breastplates
 
 		self.place_items(breastplates)
 
 		monsters_to_place = objects.gen_monsters(self.level, objects.monsters, number_of_enemies)
-		#print monsters_to_place
+		# monsters_to_place
 
 		self.place_monsters(monsters_to_place)
 
@@ -827,7 +823,7 @@ class Game(object): # move this to objects
 
 		self.draw_objects()
 		self.listen_for_messagess(player)
-		self.print_messages()
+		self._messages()
 		pygame.display.flip()
 
 	def listen_for_messagess(self, obj):
@@ -841,7 +837,7 @@ class Game(object): # move this to objects
 			del self.messages[:to_delete]
 			self.messages.extend(obj.sent_messages)
 
-	def print_messages(self):
+	def _messages(self):
 		y = constants.SCREEN_SIZE_HEIGHT - 2
 		_y = y * constants.FONT_SIZE
 
@@ -931,7 +927,7 @@ class Game(object): # move this to objects
 
 			self.draw_all()
 			self.draw_bresenham_line(player.x, player.y, x, y)
-			self.print_messages()
+			self._messages()
 			scr.blit(look_text, (0, 0))
 			if noise is not None:
 				self.ui.draw_noise_indicators(noise_to_draw, self.fov_map)
@@ -995,8 +991,6 @@ class Game(object): # move this to objects
 			if obj.fighter is not None and not item.item.can_break:
 				# apply the effect on the monster
 
-				print "dupa"
-
 				# lesser damage
 
 				player.send_message("{0} hits {1}!".format(item.name.title(), obj.name.title()))
@@ -1011,7 +1005,6 @@ class Game(object): # move this to objects
 				#obj.fighter.hp
 
 				if item.item.use_func is not None:
-					print 'dodo'
 					item.item.use(target=obj, user=player, item=item, UI=self.ui)
 					self.check_for_death(obj)
 				player.send_message("{0} shatters!".format(item.name.title()))
@@ -1056,18 +1049,13 @@ class Game(object): # move this to objects
 	
 								for obj in self.objects:
 									if obj.x == x and obj.y == y and obj.fighter and obj.name != constants.PLAYER_NAME:
-										print 'hit'
 										item.x = path[-1][0]
 										item.y = path[-1][1]
 										if not item.item.can_break:
 											self.objects.append(item)
-
-										#if not item.item.can_break:
-										#	print "dupsko"
-										#	self.objects.append(item)
 										return obj
 
-								#print "{0} {1}ok".format(x, y)
+								# "{0} {1}ok".format(x, y)
 								pygame.time.set_timer(SHOW_PROJECTILE_EVENT, SHOW_PROJECTILE_MS)
 	
 								self.draw_all()
@@ -1208,7 +1196,8 @@ class UI(object): # move this to objects
 		# draw name of the rect in the middle of upper part of the rect
 
 	def draw(self, scr, knee_health): #draw_main_screen
-		messages_IMAGES = [''] #[self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
+		messages_IMAGES = [self.images['ui_MESSAGE_TOP_LEFT'], self.images['ui_MESSAGE_BOTTOM_LEFT'], self.images['ui_MESSAGE_TOP_RIGHT'], 
+		 	 			   self.images['ui_MESSAGE_TOP_RIGHT'], self.images['ui_MESSAGE_HORIZONTAL'], self.images['ui_MESSAGE_VERTICAL']]
 		information_IMAGES  = messages_IMAGES
 
 		self.draw_rect(constants.START_MESSAGE_BOX_X, constants.START_MESSAGE_BOX_Y, 30, 7, messages_IMAGES, scr, 'MESSAGES')
@@ -1323,7 +1312,6 @@ class UI(object): # move this to objects
 
 		slot = piece_of_equipment.item.equipment.slot
 		if self.equipment_places[slot][1] is None:
-			print 'd'
 			self.equipment_places[slot][1] = piece_of_equipment
 			self.remove_item_from_UI(piece_of_equipment.x, piece_of_equipment.y) # remove before moving (changing the coordinates of) the item.
 			x = self.equipment_places[slot][0][0]
@@ -1359,7 +1347,7 @@ class UI(object): # move this to objects
 		items = [helmet, breastplate, cloak, l_hand, r_hand, l_foot, r_foot, l_ring, r_ring, amulet, accessory]
 
 		for i in items:
-			scr.blit(self.images[15], (i[0][0] * constants.FONT_SIZE, i[0][1] * constants.FONT_SIZE))
+			scr.blit(self.images['inventory_slot_IMG'], (i[0][0] * constants.FONT_SIZE, i[0][1] * constants.FONT_SIZE))
 
 		for piece in items:
 			if piece[1] is not None:
@@ -1501,7 +1489,10 @@ class UI(object): # move this to objects
 		# return item chosen
 
 	def choosable_menu(self, options, title=''):
-		messages_IMAGES = [self.images[8], self.images[9], self.images[10], self.images[11], self.images[7], self.images[12]]
+
+		messages_IMAGES =\
+		 	[self.images['ui_MESSAGE_TOP_LEFT'], self.images['ui_MESSAGE_BOTTOM_LEFT'], self.images['ui_MESSAGE_TOP_RIGHT'], 
+		 	 self.images['ui_MESSAGE_TOP_RIGHT'], self.images['ui_MESSAGE_HORIZONTAL'], self.images['ui_MESSAGE_VERTICAL']]
 
 		chosen = False
 
