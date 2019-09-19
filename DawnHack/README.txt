@@ -1,3 +1,6 @@
+CREDITS: https://www.deviantart.com/dragondeplatino/art/DawnHack-NetHack-3-6-1-UnNetHack-5-1-0-416312313
+
+
 
 DAWNLIKE
 16x16 Universal Rogue-like tileset v1.81
